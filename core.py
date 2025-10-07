@@ -10,6 +10,7 @@ from utils.downloader import download_image
 from utils.create_dirs import create_directory
 from utils.user_agent import agent
 from utils.cookies import save_cookies, load_cookies
+from utils.cbz import cbz_wu
 
 # --- Configuration --- should be a .yaml but I'dont wanna do that yet
 SOURCES_DIR = (Path(__file__).parent / "scrapers")
@@ -174,6 +175,44 @@ def main(url: str, **kwargs):
 
     
     print("--- Execution Complete ---")
+
+
+def create_cbz(path: str, language: str, series:str):
+    pathe = Path(path)
+    # 1. Check path exists
+    if not pathe.exists() or not pathe.is_dir():
+        print("[create_cbz] Invalid path.")
+        return None
+    
+    # 1.5. Make sure is series path and not chapter or vol path
+    test = [file for file in pathe.iterdir() if file.is_file()]
+    if len(test) > 0:
+        print("[create_cbz] Invalid path. (must be serie path)")
+        return None
+    
+    # 2. Get the volumes and chapters of the serie
+    # 2.1. Get the chapter info
+    CHAPTERS = []
+    for chapter in sorted(Path(path).iterdir()):
+        # 2.5 Get volume or chapter
+        # 2.6 Chapter
+        if " Chapter " in chapter.name:
+            volume = False
+            number = float(chapter.name.split(" ")[-1])
+            title = f"Chapter {number}"
+        else:
+            # Assume is volume
+            volume = True
+            number = int(chapter.name.split(" ")[-1][1:])
+            title = f"Volume {number}"
+
+        # 3. Create cbz 
+        cbz_wu(path=chapter, volume=volume, number=number, title=title, language=language, series=series)
+
+    
+    print("--- Execution Complete ---")
+
+
 
 
 if __name__ == "__main__":

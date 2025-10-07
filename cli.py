@@ -1,7 +1,6 @@
 import click
 import re
-from pathlib import Path
-from core import main
+from core import main, create_cbz
 
 @click.group()
 def cli():
@@ -25,7 +24,6 @@ def cli():
     help='[Mangadex] The specific group link or code.'
 )
 
-
 def dl(url, chapters, group_code):
     """Download manga from URL"""
 
@@ -44,6 +42,28 @@ def dl(url, chapters, group_code):
             print(f"Downloading range: from {start_chapter} to {end_chapter}")
 
     main(url, limit=limit, start_chapter=start_chapter, end_chapter=end_chapter, group_code=group_code)
+
+@cli.command()
+@click.argument('path')
+@click.option(
+    '-l', 
+    '--language',  
+    type=str,          
+    default="en",       #
+    help='Specify Language iso (en, es, pt)'
+)
+@click.option(
+    '-s', 
+    '--series',  
+    type=str,          
+    prompt="Series name: ",       #
+    help='Series name'
+)
+def cbz(path, language, series):
+    """Create cbz file from serie"""
+    create_cbz(path, language, series)
+
+
 
 
 if __name__ == '__main__':
