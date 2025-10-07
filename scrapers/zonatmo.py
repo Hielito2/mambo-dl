@@ -56,7 +56,6 @@ class Manga:
         return self.group_code
 
     def get_chapters(self):
-        print(f"{SITE}: Getting chapters...")
         try:
             # Get the series page
             page = self.client.get(url=self.url, follow_redirects=True)
@@ -69,9 +68,7 @@ class Manga:
 
             chapters_info = chapters_block.find_all('li', class_="list-group-item p-0 bg-light upload-link")
 
-            CHAPTERS = []
-            found = False
-            
+            CHAPTERS = []            
             for chapter in reversed(chapters_info):
                 chapter_name = chapter.find('a', class_="btn-collapse").text.strip()
                 chapter_number = float(chapter_name.split(' ')[1])
@@ -83,16 +80,13 @@ class Manga:
                     if self.group_code.lower() not in group_name:
                         continue
                     else:
-                        found = True
                         chapter_url = group.find('a', class_="btn btn-default btn-sm").get('href')
                         CHAPTERS.append({
                         'volume': 0,
                         'chapter_number': chapter_number,
                         'chapter_url': chapter_url
                         })
-                if not found:
-                    continue
-            
+                        
         except Exception as e:
             print(f"Error in getting chapter number and url and saving it\n{e}")
         #print(CHAPTERS)

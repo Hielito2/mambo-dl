@@ -58,7 +58,6 @@ class Manga:
 
         try:
             # Get Chapters
-            print("Senshimanga: Getting singles chapters...")
             data = page.json()['data']
             serie_name = data['title']
             for chapter_data in data['chapters']:

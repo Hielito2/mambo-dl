@@ -46,7 +46,7 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
     # Download pretty
 
     with Progress() as progress:
-        task = progress.add_task(f"[cyan]Downloading {len(chapter_images)} images...", total=len(chapter_images))
+        task = progress.add_task(f"[cyan]Downloading Chapter {chapter_number} :: {len(chapter_images)} images...", total=len(chapter_images))
         with httpx.Client(headers=headers,
                           timeout=httpx.Timeout(30.0, read=60.0)) as client:
             if cookies != {}:
@@ -74,6 +74,4 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                         print(f"Failed to download image: {str(e)}")
                         print(image_path.stem)
                         time.sleep(30)
-                        continue
-
-
+                        continue    

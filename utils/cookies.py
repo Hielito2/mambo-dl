@@ -17,7 +17,7 @@ def save_cookies(cookies, source_name: str):
     with open(cookie_file, 'wb') as f:
         pickle.dump(cookies, f)
 
-    print(f"Cookies saved to {cookie_file.stem}")
+    #print(f"Cookies saved to {cookie_file.stem}")
 
 # --- Loading Cookies in SourceA.py or main script ---
 def load_cookies(source_name: str):
@@ -31,5 +31,5 @@ def load_cookies(source_name: str):
     with open(cookie_file, 'rb') as f:
         loaded_cookies = pickle.load(f)
         
-    print(f"Cookies loaded from {cookie_file.stem}")
+    #print(f"Cookies loaded from {cookie_file.stem}")
     return loaded_cookies

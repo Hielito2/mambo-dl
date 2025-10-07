@@ -28,8 +28,6 @@ class Manga:
     
     
     def get_chapters(self):
-        
-        # Get the series page
         page = self.client.get(url=self.url, follow_redirects=True)
         if page.status_code != 200:
             raise ValueError
@@ -42,7 +40,6 @@ class Manga:
 
         try:
             # Get Chapters
-            print("TCB: Getting singles chapters...")
             for url_locator, number_locator  in zip(content_block.find_all('a'), content_block.find_all('div', class_="text-lg font-bold")):
                 chapter_url = url_locator.get('href', "") # Where url is located
                 

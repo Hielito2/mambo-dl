@@ -67,16 +67,15 @@ class Manga:
         page = self.client.get(url=self.url, follow_redirects=True)
         if page.status_code != 200:
             raise ValueError
-        print(f"First page {page.status_code}")
         soup = BeautifulSoup(page.content, "lxml")
         
         self.debug(page.text)
         
         serie_name = clean_filename(soup.find_all('p', class_="font-light text-white")[2].text.split("~")[0])
         
-
         if not serie_name:
-            return "Could't find serie name"
+            print('[mangasnosekai] No serie name ??[!]?')
+            return None
         
         # Get the manga ID
         manga_id = soup.find('div', class_="site-content").find_next('div').get('class')[0].split("-")[1]

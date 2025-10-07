@@ -91,7 +91,6 @@ class Manga:
 
         try:
             # Get Chapters with volume
-            print("Inventario: Getting chapters with volume...\n")
             for volume, chapters in zip(reversed(volumes_blocks), reversed(chapters_block)):
                 vol_number = int(volume.text.split(' ')[1])
                 for i in reversed(chapters.find_all("a")):
@@ -110,7 +109,6 @@ class Manga:
             
             #print(CHAPTERS)
             # Get Chapters without volume
-            print("Inventario: Getting singles chapters...")
             for chapter in content_block.find_all('a'):
                 if not self.url in chapter.get("href", "") or "volumen" in chapter.get("href", "") or isinstance(chapter.get("title"), str): 
                     continue

@@ -29,8 +29,6 @@ def cli():
 def dl(url, chapters, group_code):
     """Download manga from URL"""
 
-    print(f"URL: {url}")    
-
     if chapters == '0000':
         limit = False
         start_chapter, end_chapter = None, None
