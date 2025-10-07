@@ -176,12 +176,12 @@ def main(url: str, **kwargs):
                 cookies = {}
             download_image(serie_name, chapter['volume'], chapter['chapter_number'], chapter_images, series_path, headers, cookies)
             taked_time = (time.time() - start_time)
-            print(f"Taked time: {taked_time}")
+            #print(f"Taked time: {taked_time}")
             if taked_time < wait:
-                print(f"Waiting {wait - taked_time}")
+               #print(f"Waiting {wait - taked_time}")
                 time.sleep(wait - taked_time)
             else:
-                time.sleep(0.30)
+                time.sleep(0.40)
             print('\n')
             
     

@@ -123,6 +123,7 @@ class Manga:
         time.sleep(2)
         chall_r = self.client.get(url=chall_url, headers=chall_headers)
         
+        time.sleep(0.20)
         # GET the cascaque
         new_url = str(r.url).replace("paginated", "cascade")
         headers_2 = {"User-Agent": self.user_agent, "Referer": str(r.url)}
