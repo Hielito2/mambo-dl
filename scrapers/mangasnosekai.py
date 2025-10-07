@@ -7,6 +7,7 @@ from operator import itemgetter
 
 SITE = "mangasnosekai" #same as url_pattern
 WAIT = 10
+COOKIES = True
 
 
 def clean_filename(name: str, replacement: str = "") -> str:
@@ -20,14 +21,23 @@ def clean_filename(name: str, replacement: str = "") -> str:
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?mangasnosekai\.com/"
-    def __init__(self, url, user_agent, cookies, *_) -> None:
-        if cookies == {}:
-            self.client = httpx.Client(headers={"User-Agent": user_agent})
-        else:
-            print(f"{SITE} using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": user_agent}, cookies=cookies)
+    def __init__(self, url, **kwargs) -> None:
         self.url = url
+    
+
+    def set_client(self, **kwargs):
+        self.user_agent = kwargs['user_agent']
+
+        if kwargs['cookies'] == {}:
+            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
+        else:
+            print(f"[mangasnosekai] using existing cookies")
+            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']}, cookies=kwargs['cookies'])
         
+
+    def cookies(self):
+        return COOKIES
+    
 
     def debug(self, html):
         from pathlib import Path
@@ -46,8 +56,8 @@ class Manga:
         return WAIT
     
 
-    def get_image_headers(self, *args):
-        headers = headers={"User-Agent": "", "Referer": args[0]}
+    def get_image_headers(self, **kwargs):
+        headers = headers={"User-Agent": self.user_agent, "Referer": kwargs['chapter_url']}
         return headers
     
 

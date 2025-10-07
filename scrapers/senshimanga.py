@@ -4,27 +4,30 @@ from operator import itemgetter
 
 SITE = "senshimanga" #same as url_pattern
 WAIT = 12
-
+COOKIES = False
 
 
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?senshimanga\.capibaratraductor\.com/"
-    def __init__(self, url, user_agent, cookies, *args) -> None:
-        headers={"User-Agent": user_agent, 
+    def __init__(self, url, **kwargs) -> None:
+        self.url = url.split("/")[-1]
+        
+
+    def set_client(self, **kwargs):
+        self.user_agent = kwargs['user_agent']
+        headers={"User-Agent": self.user_agent, 
                 "Referer": "https://senshimanga.capibaratraductor.com/",
                 "organization-domain": "senshimanga.capibaratraductor.com",
                 "Authorization": "",
                 "Origin": "https://senshimanga.capibaratraductor.com"}
-        
-        self.user_agent = user_agent
-        if cookies == {}:
-            self.client = httpx.Client(headers=headers)
-        else:
-            print(f"{SITE} using existing cookies")
-            self.client = httpx.Client(headers=headers, cookies=cookies)
-        self.url = url.split("/")[-1]
-        
+      
+        self.client = httpx.Client(headers=headers)
+
+
+    def cookies(self):
+        return COOKIES
+
     def debug(self, html):
         from pathlib import Path
         htm = (Path(__file__).parent.parent.resolve() / 'debug' / f'{SITE}.html')
@@ -41,8 +44,8 @@ class Manga:
     def wait(self):
         return WAIT
     
-    def get_image_headers(self, *args):
-        headers = headers={"User-Agent": self.user_agent, "Alt-Used": "files.capibaratraductor.com",
+    def get_image_headers(self, **kwargs):
+        headers={"User-Agent": self.user_agent, "Alt-Used": "files.capibaratraductor.com",
                            "Referer": "https://senshimanga.capibaratraductor.com/"}
         return headers
     

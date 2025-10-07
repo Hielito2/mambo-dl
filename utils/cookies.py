@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-COOKIES_DIR = Path('/mnt/ssd/Phyton/My_projectzz/Python/Project3.00/manga-downloader/stuff/cookies/')
+COOKIES_DIR = Path(__file__).parent.parent.resolve() / 'cookies' 
 
 def get_cookie_filename(source_name: str) -> Path:
     """Generates a site-specific cookie filename."""

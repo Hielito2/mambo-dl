@@ -5,19 +5,27 @@ from operator import itemgetter
 
 SITE = "uchuujinmangas" #same as url_pattern
 WAIT = 15
-
+COOKIES = True
 
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?uchuujinmangas\.com/"
-    def __init__(self, url, user_agent, cookies, *_) -> None:
-        self.user_agent = user_agent
-        if cookies == {}:
-            self.client = httpx.Client(headers={"User-Agent": user_agent})
-        else:
-            print(f"Inventario using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": user_agent}, cookies=cookies)
+    def __init__(self, url, **kwargs) -> None:
         self.url = url
+    
+
+    def set_client(self, **kwargs):
+        self.user_agent = kwargs['user_agent']
+
+        if kwargs['cookies'] == {}:
+            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
+        else:
+            print(f"[{SITE}] using existing cookies")
+            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']}, cookies=kwargs['cookies'])
+            
+
+    def cookies(self):
+        return COOKIES
 
     def wait(self):
         return WAIT
@@ -34,8 +42,8 @@ class Manga:
         return self.client.cookies
 
 
-    def get_image_headers(self, *args):
-        headers = headers={"User-Agent": self.user_agent, "Referer": args[0]}
+    def get_image_headers(self, **kwargs):
+        headers={"User-Agent": self.user_agent, "Referer": kwargs['chapter_url']}
         return headers
 
     
@@ -53,7 +61,7 @@ class Manga:
 
         try:
             # Get Chapters
-            print("Inventario: Getting singles chapters...")
+            print(f"{SITE}: Getting singles chapters...")
             for chapter in content_block.find_all('li'):
                 chapter_url = chapter.find('a').get('href') # Where url is located
                 try:
@@ -70,7 +78,7 @@ class Manga:
             print(f"Error in getting chapter number and url and saving it\n{e}")
         #print(CHAPTERS)
         CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
-        print(page.cookies)
+        print(self.client.cookies)
         return serie_name, CHAPTERS
     
 

@@ -6,20 +6,31 @@ from operator import itemgetter
 
 SITE = "inventariooculto" #same as url_pattern
 WAIT = 10
+COOKIES = True
+
 
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?inventariooculto\.com/"
 
-    def __init__(self, url, user_agent, cookies, *args) -> None:
-        self.user_agent = user_agent
-        if cookies == {}:
-            self.client = httpx.Client(headers={"User-Agent": user_agent})
-        else:
-            print(f"Inventario using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": user_agent}, cookies=cookies)
+    def __init__(self, url, **kwargs) -> None:
         self.url = url
     
+
+    def set_client(self, **kwargs):
+        self.user_agent = kwargs['user_agent']
+
+        if kwargs['cookies'] == {}:
+            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
+        else:
+            print(f"[Inventario] using existing cookies")
+            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']}, cookies=kwargs['cookies'])
+            
+
+    def cookies(self):
+        return COOKIES
+    
+
     def wait(self):
         return WAIT
 
@@ -30,15 +41,18 @@ class Manga:
         with open(htm, "w") as f:
             f.write(html)
     
+
     def get_cookies(self):
         """Returns the cookies and headers from the client."""
         # httpx.Client.cookies is a httpx.Cookies object, convert to dict        
         return self.client.cookies
     
-    def get_image_headers(self, *args):
-        headers = headers={"User-Agent": self.user_agent, "Referer": args[0]}
+
+    def get_image_headers(self, **kwargs):
+        headers={"User-Agent": self.user_agent, "Referer": kwargs['chapter_url']}
         return headers
     
+
     def get_chapters(self):
         try:
             # Get the series page

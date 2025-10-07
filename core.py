@@ -108,8 +108,9 @@ def main(url: str, **kwargs):
     is_cookies = scraper.cookies()
 
     if is_cookies:
-        print("[core] Load cookies.")
+        
         cookies = load_cookies(site_name)
+        print("[core] Load cookies.")
     else:
         cookies = {}
 

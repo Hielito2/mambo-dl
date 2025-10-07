@@ -24,21 +24,13 @@ def cli():
     default=None,       
     help='[Mangadex] The specific group link or code.'
 )
-@click.option(
-    '-l', 
-    '--language',     # The new, site-specific option Mangadex
-    type=str,           
-    default="en",       
-    help='[Mangadex] The specific language tag required by this source. [es-la, fr, pt-br, it, es]'
-)
 
 
-def dl(url, chapters, group_code, language):
+def dl(url, chapters, group_code):
     """Download manga from URL"""
 
     print(f"URL: {url}")    
 
-    
     if chapters == '0000':
         limit = False
         start_chapter, end_chapter = None, None
@@ -53,7 +45,7 @@ def dl(url, chapters, group_code, language):
             end_chapter = int(end_str)
             print(f"Downloading range: from {start_chapter} to {end_chapter}")
 
-    main(url, limit=limit, start_chapter=start_chapter, end_chapter=end_chapter, group_code=group_code, language=language)
+    main(url, limit=limit, start_chapter=start_chapter, end_chapter=end_chapter, group_code=group_code)
 
 
 if __name__ == '__main__':

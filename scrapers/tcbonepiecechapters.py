@@ -5,16 +5,22 @@ from operator import itemgetter
 
 SITE = "tcbonepiecechapters" #same as url_pattern
 WAIT = 10  #BEtween chapters in seconds
-
+COOKIES = False
 
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?tcbonepiecechapters\.com/"
-    def __init__(self, url, user_agent, cookies, _, __) -> None:
-        self.user_agent = user_agent
-        self.client = httpx.Client(headers={"User-Agent": user_agent})
-
+    def __init__(self, url, **kwargs) -> None:
         self.url = url
+    
+
+    def set_client(self, **kwargs):
+        self.user_agent = kwargs['user_agent']
+        self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
+    
+
+    def cookies(self):
+        return COOKIES
         
 
     def wait(self):
@@ -64,7 +70,7 @@ class Manga:
         return serie_name, CHAPTERS
     
 
-    def get_image_headers(self):
+    def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Referer": "https://tcbonepiecechapters.com/"}
         return headers
 

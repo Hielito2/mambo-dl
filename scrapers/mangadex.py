@@ -18,7 +18,6 @@ class Manga:
             self.group_code = kwargs['group_code'].split("/")[4]
         else:
             self.group_code = kwargs['group_code']  
-        self.language = kwargs['language']
         self.url = url.split('/')[4]
     
 
@@ -45,10 +44,18 @@ class Manga:
             with open(htm, "w") as f:
                 f.write(str(content))
     
+
+    def get_group_lang(self):
+        url = f"https://api.mangadex.org/group/{self.group_code}?includes[]=leader&includes[]=member"
+        response = self.client.get(url)
+        language = response.json()['data']['attributes']['focusedLanguages'][0]
+        return language
+    
     
     def get_group_name(self):
         url = f"https://api.mangadex.org/group/{self.group_code}?includes[]=leader&includes[]=member"
         response = self.client.get(url)
+        #self.debug(response.text)
         group_name = response.json()['data']['attributes']['name']
         return group_name
     
@@ -90,7 +97,8 @@ class Manga:
             
     
     def get_chapters(self):
-        serie_url = f"https://api.mangadex.org/manga/{self.url}/aggregate?translatedLanguage[]={self.language}&groups[]={self.group_code}"
+        lang = self.get_group_lang()
+        serie_url = f"https://api.mangadex.org/manga/{self.url}/aggregate?translatedLanguage[]={lang}&groups[]={self.group_code}"
         # Get the series page
         page = self.client.get(url=serie_url)
         if page.status_code != 200:
