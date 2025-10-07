@@ -2,7 +2,7 @@
 
 Usage 
 
-cli.py dl url 
+cli.py dl url -gc {name} or {url}
 
 websites that have many groups like mangadex or zonatmo requiere to enter the group name or code
 mangadex: code (can enter the url of the group in magadex)
