@@ -45,12 +45,12 @@ class Manga:
     def get_cookies(self):
         """Returns the cookies and headers from the client."""
         # httpx.Client.cookies is a httpx.Cookies object, convert to dict        
-        return self.client.cookies
+        return self.client.cookies.jar._cookies
     
 
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Referer": kwargs['chapter_url']}
-        return headers
+        return headers, False
     
 
     def get_chapters(self):

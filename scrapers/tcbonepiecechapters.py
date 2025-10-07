@@ -25,14 +25,8 @@ class Manga:
 
     def wait(self):
         return WAIT
-
-
-    def get_cookies(self):
-        """Returns the cookies and headers from the client."""
-        # httpx.Client.cookies is a httpx.Cookies object, convert to dict        
-        return self.client.cookies
     
-
+    
     def get_chapters(self):
         
         # Get the series page
@@ -72,7 +66,7 @@ class Manga:
 
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Referer": "https://tcbonepiecechapters.com/"}
-        return headers
+        return headers, False
 
 
     def get_images_url(self, url: str):

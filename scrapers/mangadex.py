@@ -131,7 +131,7 @@ class Manga:
     
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Origin": "https://mangadex.org", "Referer": "https://mangadex.org/"}
-        return headers
+        return headers, False
     
 
     def get_images_url(self, code: str):

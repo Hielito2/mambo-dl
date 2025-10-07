@@ -35,19 +35,13 @@ class Manga:
             f.write(html)
 
 
-    def get_cookies(self):
-        """Returns the cookies and headers from the client."""
-        # httpx.Client.cookies is a httpx.Cookies object, convert to dict        
-        return self.client.cookies
-    
-
     def wait(self):
         return WAIT
     
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Alt-Used": "files.capibaratraductor.com",
                            "Referer": "https://senshimanga.capibaratraductor.com/"}
-        return headers
+        return headers, False
     
 
     def get_chapters(self):

@@ -21,7 +21,8 @@ class Manga:
             self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
         else:
             print(f"[{SITE}] using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']}, cookies=kwargs['cookies'])
+            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
+            self.client.cookies.jar._cookies.update(kwargs['cookies'])
             
 
     def cookies(self):
@@ -39,12 +40,12 @@ class Manga:
     def get_cookies(self):
         """Returns the cookies and headers from the client."""
         # httpx.Client.cookies is a httpx.Cookies object, convert to dict        
-        return self.client.cookies
+        return self.client.cookies.jar._cookies
 
 
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Referer": kwargs['chapter_url']}
-        return headers
+        return headers, True
 
     
     def get_chapters(self):
@@ -54,21 +55,25 @@ class Manga:
             raise ValueError
         soup = BeautifulSoup(page.content, "lxml")
         serie_name = soup.find('title').text.split(" – ")[0].strip()
+
+        # Get cookies
+        serie_id = soup.find('article').get('id').split('-')[1]
+        cookies_data = {"action": "get_chapters", "id": serie_id}
+        cookies_url = "https://uchuujinmangas.com/wp-admin/admin-ajax.php"
+        cookies_headers = {"User-Agent": self.user_agent, "Origin": "https://uchuujinmangas.com/", "Referer": self.url}
+        cookies_request = self.client.post(url=cookies_url, headers=cookies_headers, data=cookies_data)
         
+        soup = BeautifulSoup(cookies_request.content, "lxml")
+        chapters_get = soup.find_all('option')
         #
         CHAPTERS = []
-        content_block = soup.find('ul', class_="clstyle") #Where chapters are located
 
         try:
             # Get Chapters
-            print(f"{SITE}: Getting singles chapters...")
-            for chapter in content_block.find_all('li'):
-                chapter_url = chapter.find('a').get('href') # Where url is located
-                try:
-                    chapter_number = float(chapter.get("data-num"))
-                except:
-                    chapter_number = extra
-                    extra+=1
+            for chapter in chapters_get:
+                chapter_url = chapter.get('value') # Where url is located
+                chapter_number = float(chapter.text.split(' ')[1])
+  
                 CHAPTERS.append({
                     'volume': 0,
                     'chapter_number': chapter_number,
@@ -78,7 +83,8 @@ class Manga:
             print(f"Error in getting chapter number and url and saving it\n{e}")
         #print(CHAPTERS)
         CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
-        print(self.client.cookies)
+        
+        #print(self.client.cookies)
         return serie_name, CHAPTERS
     
 

@@ -28,7 +28,7 @@ def chapter_volumen_number(number):
 
 
 def download_image(serie_name, volumen, chapter_number, chapter_images, series_path, headers, cookies):
-    
+
     extension_mapping = {
                 'image/jpeg': 'jpg',
                 'image/png': 'png',
@@ -47,15 +47,19 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
 
     with Progress() as progress:
         task = progress.add_task(f"[cyan]Downloading {len(chapter_images)} images...", total=len(chapter_images))
-        with httpx.Client(headers=headers, cookies=cookies,
+        with httpx.Client(headers=headers,
                           timeout=httpx.Timeout(30.0, read=60.0)) as client:
+            if cookies != {}:
+                client.cookies.jar._cookies.update(cookies)
             for i, image in enumerate(chapter_images):
                 progress.update(task, advance=1)
                 for _ in range(5):
                     try:
+                        # DEBUG
+                        #print(f"[downloader] \nheadears: {client.headers} \nCookies: {client.cookies}")
+                        #
                         response = client.get(image)
                         response.raise_for_status()
-
                         content_type = response.headers.get('Content-Type')
                         extension = extension_mapping.get(content_type, 'bin')
                         image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")

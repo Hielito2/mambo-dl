@@ -171,7 +171,9 @@ def main(url: str, **kwargs):
             chapter_images = scraper.get_images_url(chapter['chapter_url'])
             print(f"Chapter {chapter['chapter_number']} with {len(chapter_images)} images...")
             # Download the images
-            headers = scraper.get_image_headers(chapter_url=chapter['chapter_url'])
+            headers, use_cookies = scraper.get_image_headers(chapter_url=chapter['chapter_url'])
+            if not use_cookies:
+                cookies = {}
             download_image(serie_name, chapter['volume'], chapter['chapter_number'], chapter_images, series_path, headers, cookies)
             taked_time = (time.time() - start_time)
             print(f"Taked time: {taked_time}")
