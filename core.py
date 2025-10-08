@@ -128,7 +128,6 @@ def main(url: str, **kwargs):
     try:
         # Mangadex
         if hasattr(scraper, 'clean_chapters'):
-            print("[core]== Cleaning Chapters ==")
             chapters = scraper.clean_chapters(chapters, kwargs['limit'], kwargs['start_chapter'], kwargs['end_chapter'])
     except Exception as e:
         print(f"An error occurred during cleaning chapters: {e}")

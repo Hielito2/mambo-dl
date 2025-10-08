@@ -44,34 +44,37 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
         download_path = create_directory(Path(series_path, f"{serie_name} v{volumen}"))
     
     # Download pretty
-
+   
     with Progress() as progress:
-        task = progress.add_task(f"[cyan]Downloading Chapter {chapter_number} :: {len(chapter_images)} images...", total=len(chapter_images))
-        with httpx.Client(headers=headers,
-                          timeout=httpx.Timeout(30.0, read=60.0)) as client:
-            if cookies != {}:
-                client.cookies.jar._cookies.update(cookies)
-            for i, image in enumerate(chapter_images):
-                progress.update(task, advance=1)
-                for _ in range(5):
-                    try:
-                        # DEBUG
-                        #print(f"[downloader] \nheadears: {client.headers} \nCookies: {client.cookies}")
-                        #
-                        response = client.get(image)
-                        response.raise_for_status()
-                        content_type = response.headers.get('Content-Type')
-                        extension = extension_mapping.get(content_type, 'bin')
-                        image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
-                        
-                        if not image_path.exists() or image_path.stat().st_size != int(response.headers.get('content-length', 0)):  
-                            with open(image_path, 'wb') as file:
-                                file.write(response.content)
+        try:
+            task = progress.add_task(f"[cyan]Downloading Chapter {chapter_number} :: {len(chapter_images)} images...", total=len(chapter_images))
+            with httpx.Client(headers=headers,timeout=httpx.Timeout(30.0, read=60.0)) as client:
+                if cookies != {}:
+                    client.cookies.jar._cookies.update(cookies)
+                for i, image in enumerate(chapter_images):
+                    progress.update(task, advance=1)
+                    for _ in range(5):
+                        try:
+                            response = client.get(image)
+                            response.raise_for_status()
+                            content_type = response.headers.get('Content-Type')
+                            extension = extension_mapping.get(content_type, 'bin')
+                            image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
+                            
+                            if not image_path.exists() or image_path.stat().st_size != int(response.headers.get('content-length', 0)):  
+                                with open(image_path, 'wb') as file:
+                                    file.write(response.content)
 
-                        time.sleep(0.3)   
-                        break  
-                    except Exception as e:
-                        print(f"Failed to download image: {str(e)}")
-                        print(image_path.stem)
-                        time.sleep(30)
-                        continue    
+                            time.sleep(0.3)   
+                            break  
+                        except Exception as e:
+                            print(f"Failed to download image: {str(e)}")
+                            print(image_path.stem)
+                            time.sleep(30)
+                            continue    
+        except:
+            print("Not sure wat to do when get here")
+            return None
+        finally:
+            progress.update(task, visible=True) # Didn't work as I expected
+

@@ -3,6 +3,8 @@ import time
 import json
 from pathlib import Path
 from operator import itemgetter
+#
+from rich.progress import Progress
 
 
 SITE = "mangadex" #same as url_pattern
@@ -48,7 +50,11 @@ class Manga:
     def get_group_lang(self):
         url = f"https://api.mangadex.org/group/{self.group_code}?includes[]=leader&includes[]=member"
         response = self.client.get(url)
-        language = response.json()['data']['attributes']['focusedLanguages'][0]
+        try:
+            language = response.json()['data']['attributes']['focusedLanguages'][0]
+        except:
+            language = input("Couldn't get group language, enter the language code: ")
+        
         return language
     
     
@@ -74,26 +80,29 @@ class Manga:
 
     
     def clean_chapters(self, chapters, limit, start_chapter, end_chapter):
-        new_chapters = []
-        for chapter in chapters:
-            if limit:
-                if int(chapter['chapter_number']) < start_chapter:
-                    continue
-                if int(chapter['chapter_number']) > end_chapter:
-                    continue
-            #
-            try:
+        progress = Progress()
+        progress.start()
+        print("== Cleaning Chapters ==")
+        try:
+            task1 = progress.add_task("[cyan]Cleaning...", total=len(chapters))
+            new_chapters = []
+            for chapter in chapters:
+                if limit:
+                    if int(chapter['chapter_number']) < start_chapter or int(chapter['chapter_number']) > end_chapter:
+                        continue
+                #   
                 chapter_group = self.is_the_group(chapter['chapter_url'], self.group_code)
                 if chapter_group:
-                    print(f"Found chapter {chapter['chapter_number']}")
+                    progress.update(task1, advance=1, description=f"[cyan]Found [green]{chapter['chapter_number']}...")
                     new_chapters.append(chapter)
                 else:
-                    pass
-            except:
-                pass
-                
-            time.sleep(0.5)
-        return new_chapters
+                    progress.update(task1, advance=1, description=f"[red]NOT FOUND [orange]{chapter['chapter_number']}...")
+                time.sleep(0.5)
+            
+        finally:
+            progress.update(task1, visible=True)
+            progress.stop()
+            return new_chapters
             
     
     def get_chapters(self):
@@ -106,7 +115,10 @@ class Manga:
         
         #Get the serie name
         a = self.client.get(f"https://api.mangadex.org/manga/{self.url}")
-        serie_name = a.json()['data']['attributes']['title']['en']
+        try:
+            serie_name = a.json()['data']['attributes']['title']['en']
+        except:
+            serie_name = a.json()['data']['attributes']['altTitles'][0]['en']
         
         # Get the chapters id
         response = page.json()
