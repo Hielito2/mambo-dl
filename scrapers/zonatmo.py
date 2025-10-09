@@ -86,13 +86,13 @@ class Manga:
                         'chapter_number': chapter_number,
                         'chapter_url': chapter_url
                         })
+                        break
                         
         except Exception as e:
             print(f"Error in getting chapter number and url and saving it\n{e}")
-        #print(CHAPTERS)
-        CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
-        
-        return serie_name, CHAPTERS
+        finally:
+            CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
+            return serie_name, CHAPTERS
     
 
     def get_images_url(self, url: str):
