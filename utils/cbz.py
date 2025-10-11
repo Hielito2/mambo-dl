@@ -15,10 +15,13 @@ def cbz_wu(**kwargs):
             path=path,
             type=PageType.FRONT_COVER if i == 0 else PageType.BACK_COVER if i == len(paths) - 1 else PageType.STORY
         )
-        for i, path in enumerate(paths)
+        for i, path in enumerate(sorted(paths))
     ]
 
     # Create a ComicInfo object using ComicInfo.from_pages() method
+    #try
+    if kwargs['number'] == int(kwargs['number']):
+        kwargs['number'] = int(kwargs['number'])
     comic = ComicInfo.from_pages(
         pages=pages,
         title=kwargs['title'],
@@ -36,7 +39,9 @@ def cbz_wu(**kwargs):
     cbz_content = comic.pack()
 
     # Define the path where the CBZ file will be saved
-    cbz_path = path.parent / f'{path.name}.cbz'
+    cbz_path = kwargs['output'] / f'{path.name}.cbz'
 
     # Write the CBZ content to the specified path
     cbz_path.write_bytes(cbz_content)
+    print(f"Created ::  {path.name}.cbz")
+    

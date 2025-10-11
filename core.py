@@ -81,6 +81,12 @@ def get_scraper_for_url(url: str, available_classes: list, **kwargs):
     return None
 
 
+def check_float(number):
+    if "." in str(number) and int(str(number).split('.')[1]) == 0:
+        number =  int(number)
+    return number
+
+
 def main(url: str, **kwargs):
     """
     Main function to execute the scraping logic.
@@ -147,7 +153,7 @@ def main(url: str, **kwargs):
     # 5.1 Get group name [Mangadex & zonatmo]
     if hasattr(scraper, 'get_group_name'):
         group_name = scraper.get_group_name()
-        series_path = create_directory(Path(DOWNLOAD / site_name / f"{serie_name} [{group_name}]"))
+        series_path = create_directory(Path(DOWNLOAD / site_name / f"{serie_name} ({group_name})"))
     else:
         series_path = create_directory(Path(DOWNLOAD / site_name / serie_name))
     wait = scraper.wait()
@@ -163,7 +169,7 @@ def main(url: str, **kwargs):
             headers, use_cookies = scraper.get_image_headers(chapter_url=chapter['chapter_url'])
             if not use_cookies:
                 cookies = {}
-            download_image(serie_name, chapter['volume'], chapter['chapter_number'], chapter_images, series_path, headers, cookies) # Should use async
+            download_image(serie_name, chapter['volume'], check_float(chapter['chapter_number']), chapter_images, series_path, headers, cookies, group_name) # Should use async
             taked_time = (time.time() - start_time)
             if taked_time < wait:
                 time.sleep(wait - taked_time + 0.16)
@@ -183,30 +189,28 @@ def create_cbz(path: str, language: str, series:str):
         print("[create_cbz] Invalid path.")
         return None
     
-    # 1.5. Make sure is series path and not chapter or vol path
-    test = [file for file in pathe.iterdir() if file.is_file()]
-    if len(test) > 0:
-        print("[create_cbz] Invalid path. (must be serie path)")
-        return None
     
     # 2. Get the volumes and chapters of the serie
     # 2.1. Get the chapter info
     CHAPTERS = []
+    output_path = create_directory(Path(pathe.parent, f"{pathe.name} (CBZ)"))
     for chapter in sorted(Path(path).iterdir()):
+        if not chapter.is_dir():
+            continue
         # 2.5 Get volume or chapter
         # 2.6 Chapter
-        if " Chapter " in chapter.name:
+        if not chapter.name.split(' (')[0].split(' ')[-1].startswith("v"):            
             volume = False
-            number = float(chapter.name.split(" ")[-1])
+            number = float(chapter.name.split(" ")[-2])
             title = f"Chapter {number}"
         else:
             # Assume is volume
             volume = True
-            number = int(chapter.name.split(" ")[-1][1:])
+            number = int(chapter.name.split(' (')[0].split(' ')[-1][1:])
             title = f"Volume {number}"
 
         # 3. Create cbz 
-        cbz_wu(path=chapter, volume=volume, number=number, title=title, language=language, series=series)
+        cbz_wu(path=chapter, volume=volume, number=number, title=title, language=language, series=series, output=output_path)
 
     
     print("--- Execution Complete ---")

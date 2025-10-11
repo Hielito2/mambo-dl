@@ -54,14 +54,14 @@ def dl(url, chapters, group_code):
 )
 @click.option(
     '-s', 
-    '--series',  
+    '--serie-name',  
     type=str,          
     prompt="Series name: ",       #
     help='Series name'
 )
-def cbz(path, language, series):
+def cbz(path, language, serie_name):
     """Create cbz file from serie"""
-    create_cbz(path, language, series)
+    create_cbz(path, language, serie_name)
 
 
 

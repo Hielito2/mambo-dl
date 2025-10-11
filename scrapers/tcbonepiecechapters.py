@@ -4,8 +4,9 @@ from operator import itemgetter
 
 
 SITE = "tcbonepiecechapters" #same as url_pattern
-WAIT = 10  #BEtween chapters in seconds
+WAIT = 5  #BEtween chapters in seconds
 COOKIES = False
+GROUP = "TCB"
 
 class Manga:
 
@@ -60,6 +61,8 @@ class Manga:
         
         return serie_name, CHAPTERS
     
+    def get_group_name(self):
+        return GROUP
 
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Referer": "https://tcbonepiecechapters.com/"}

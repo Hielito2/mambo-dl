@@ -1,5 +1,7 @@
 import httpx
 import time
+import asyncio
+
 from pathlib import Path
 from rich.progress import Progress
 from utils.create_dirs import create_directory
@@ -27,7 +29,7 @@ def chapter_volumen_number(number):
     return new_number
 
 
-def download_image(serie_name, volumen, chapter_number, chapter_images, series_path, headers, cookies):
+def download_image(serie_name, volumen, chapter_number, chapter_images, series_path, headers, cookies, group_name):
 
     extension_mapping = {
                 'image/jpeg': 'jpg',
@@ -39,9 +41,9 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
     chapter_number = chapter_volumen_number(chapter_number)
     volumen = chapter_volumen_number(volumen)
     if volumen == "000":
-        download_path = create_directory(Path(series_path, f"{serie_name} Chapter {chapter_number}"))
+        download_path = create_directory(Path(series_path, f"{serie_name} {chapter_number} ({group_name})"))
     else:
-        download_path = create_directory(Path(series_path, f"{serie_name} v{volumen}"))
+        download_path = create_directory(Path(series_path, f"{serie_name} v{volumen} ({group_name})"))
     
     # Download pretty
    
@@ -51,29 +53,36 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
             with httpx.Client(headers=headers,timeout=httpx.Timeout(30.0, read=60.0)) as client:
                 if cookies != {}:
                     client.cookies.jar._cookies.update(cookies)
-                for i, image in enumerate(chapter_images):
-                    progress.update(task, advance=1)
-                    for _ in range(5):
-                        try:
-                            response = client.get(image)
-                            response.raise_for_status()
-                            content_type = response.headers.get('Content-Type')
-                            extension = extension_mapping.get(content_type, 'bin')
-                            image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
-                            
-                            if not image_path.exists() or image_path.stat().st_size != int(response.headers.get('content-length', 0)):  
-                                with open(image_path, 'wb') as file:
-                                    file.write(response.content)
 
-                            time.sleep(0.3)   
-                            break  
-                        except Exception as e:
-                            print(f"Failed to download image: {str(e)}")
-                            print(image_path.stem)
-                            time.sleep(30)
-                            continue    
-        except:
-            print("Not sure wat to do when get here")
+                async def download(i, image):
+                    async with asyncio.Semaphore(5):
+                        for _ in range(5):
+                            try:
+                                response = client.get(image)
+                                response.raise_for_status()
+                                content_type = response.headers.get('Content-Type')
+                                extension = extension_mapping.get(content_type, 'bin')
+                                image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
+                                
+                                if not image_path.exists() or image_path.stat().st_size != int(response.headers.get('content-length', 0)):  
+                                    with open(image_path, 'wb') as file:
+                                        file.write(response.content)
+                                
+                                progress.update(task, advance=1)
+                                break  
+                            except Exception as e:
+                                print(f"Failed to download image: {str(e)}")
+                                print(image_path.stem)
+                                time.sleep(20)
+                                continue    
+
+                async def asyy():
+                    tasks = [download(i, image) for i, image in enumerate(chapter_images)]
+                    await asyncio.gather(*tasks)
+                            
+                asyncio.run(asyy())                
+        except Exception as e:
+            print(f"Not sure wat to do when get here {e}")
             return None
         finally:
             progress.update(task, visible=True) # Didn't work as I expected
