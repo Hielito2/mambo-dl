@@ -31,6 +31,7 @@ def chapter_volumen_number(number):
 
 def download_image(serie_name, volumen, chapter_number, chapter_images, series_path, headers, cookies, group_name):
 
+    group_name = group_name.replace(' ', '-')
     extension_mapping = {
                 'image/jpeg': 'jpg',
                 'image/png': 'png',
