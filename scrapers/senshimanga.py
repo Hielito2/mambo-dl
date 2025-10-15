@@ -5,7 +5,7 @@ from operator import itemgetter
 SITE = "senshimanga" #same as url_pattern
 WAIT = 12
 COOKIES = False
-
+GROUP = "WORMS-ORGANIZATION"
 
 class Manga:
 
@@ -23,6 +23,10 @@ class Manga:
                 "Origin": "https://senshimanga.capibaratraductor.com"}
       
         self.client = httpx.Client(headers=headers)
+
+
+    def get_group_name(self):
+        return GROUP
 
 
     def cookies(self):

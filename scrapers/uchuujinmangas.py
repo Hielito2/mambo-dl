@@ -6,6 +6,7 @@ from operator import itemgetter
 SITE = "uchuujinmangas" #same as url_pattern
 WAIT = 15
 COOKIES = True
+GROUP = "UCHUUJIN"
 
 class Manga:
 
@@ -23,7 +24,11 @@ class Manga:
             print(f"[{SITE}] using existing cookies")
             self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
             self.client.cookies.jar._cookies.update(kwargs['cookies'])
-            
+    
+
+    def get_group_name(self):
+        return GROUP
+    
 
     def cookies(self):
         return COOKIES

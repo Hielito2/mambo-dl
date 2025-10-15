@@ -4,7 +4,7 @@ from operator import itemgetter
 import time
 
 SITE = "zonatmo" #same as url_pattern
-WAIT = 20
+WAIT = 22
 COOKIES = True
 
 
@@ -75,6 +75,7 @@ class Manga:
                 # Get available groups
                 groups = chapter.find_all("li", class_="list-group-item")    
                 for group in groups:
+                    #print(" ".join(group.find('span', class_="").text))
                     group_name = " ".join(group.find('span', class_="").text.lower().strip().split()).split(',')
                     group_name = [name.strip() for name in group_name]
                     if self.group_code.lower() not in group_name:

@@ -64,7 +64,8 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                                 extension = extension_mapping.get(content_type, 'bin')
                                 image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
                                 
-                                if not image_path.exists() or image_path.stat().st_size != int(response.headers.get('content-length', 0)):  
+                                if (not image_path.exists() 
+                                    or image_path.stat().st_size != int(response.headers.get('content-length', 0))):  
                                     with open(image_path, 'wb') as file:
                                         file.write(response.content)
                                 

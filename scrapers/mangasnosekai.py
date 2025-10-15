@@ -5,10 +5,11 @@ from bs4 import BeautifulSoup
 from operator import itemgetter
 
 
-SITE = "mangasnosekai" #same as url_pattern
-WAIT = 10
-COOKIES = True
 
+SITE = "mangasnosekai" #same as url_pattern
+WAIT = 8
+COOKIES = True
+GROUP = "Mangas no Sekai"
 
 def clean_filename(name: str, replacement: str = "") -> str:
     illegal_chars = r'[<>:"/\\|?*\x00]'
@@ -34,6 +35,10 @@ class Manga:
             print(f"[mangasnosekai] using existing cookies")
             self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']}, cookies=kwargs['cookies'])
         
+
+    def get_group_name(self):
+        return GROUP
+    
 
     def cookies(self):
         return COOKIES

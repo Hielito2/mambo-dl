@@ -5,8 +5,9 @@ from operator import itemgetter
 
 
 SITE = "inventariooculto" #same as url_pattern
-WAIT = 10
+WAIT = 5
 COOKIES = True
+GROUP = "Inventario-Oculto"
 
 
 class Manga:
@@ -20,12 +21,15 @@ class Manga:
     def set_client(self, **kwargs):
         self.user_agent = kwargs['user_agent']
 
-        if kwargs['cookies'] == {}:
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-        else:
+        
+        self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
+        if not kwargs['cookies'] == {}:
             print(f"[Inventario] using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']}, cookies=kwargs['cookies'])
-            
+            self.client.cookies.jar._cookies.update(kwargs['cookies'])
+    
+    
+    def get_group_name(self):
+        return GROUP
 
     def cookies(self):
         return COOKIES
