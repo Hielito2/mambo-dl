@@ -166,6 +166,11 @@ def main(url: str, **kwargs):
                     continue
             start_time = time.time()
             chapter_images = scraper.get_images_url(chapter['chapter_url']) # THe urls
+
+            if len(chapter_images) == 0:
+                print(f"0 images, CHECK: {chapter['chapter_url']}")
+                continue
+
             headers, use_cookies = scraper.get_image_headers(chapter_url=chapter['chapter_url'])
             if not use_cookies:
                 cookies = {}
@@ -174,7 +179,7 @@ def main(url: str, **kwargs):
             if taked_time < wait:
                 time.sleep(wait - taked_time + 0.16)
             else:
-                time.sleep(0.40)
+                time.sleep(0.30)
     except Exception as e:
         print(f"An error occurred during downloading chapters: {e}")
 

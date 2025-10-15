@@ -4,7 +4,7 @@ from operator import itemgetter
 
 
 SITE = "colorcitoscan" #same as url_pattern
-WAIT = 15
+WAIT = 8
 COOKIES = True
 
 class Manga:
@@ -52,7 +52,7 @@ class Manga:
 
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, "Referer": "https://colorcitoscan.com/"}
-        return headers, True
+        return headers, False
 
     
     def get_chapters(self):
@@ -83,8 +83,20 @@ class Manga:
         except Exception as e:
             print(f"Error in getting chapter number and url and saving it\n{e}")
 
-        CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))        
+        CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))    
 
+        # get cookies
+        headers = {"User-Agent": self.user_agent, 
+                   "Origin": "https://colorcitoscan.com",
+                   "Referer": "https://colorcitoscan.com/",
+                   "Sec-Fetch-Site": "same-site"
+        }
+        
+        self.client.post(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
+        self.client.options(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
+
+
+    
         return serie_name, CHAPTERS
     
 
@@ -107,6 +119,18 @@ class Manga:
         for image in images:
             response = httpx.get(url=image, headers=headers)
             urls.append(response.headers['location'])
+        
+
+        # The site does it idk if is need it to scrape but I'll keep it
+        # The site also have extras headers as "Next-Router-State-Tree", "Next-Url" but it seems is not that scrict :P
+        headers = {"User-Agent": self.user_agent, 
+                   "Origin": "https://colorcitoscan.com",
+                   "Referer": "https://colorcitoscan.com/",
+                   "Sec-Fetch-Site": "same-site"
+        }
+        
+        self.client.post(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
+        self.client.options(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
 
         return urls
         

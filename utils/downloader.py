@@ -33,6 +33,7 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
 
     group_name = group_name.replace(' ', '-')
     extension_mapping = {
+                'image/jpg': 'jpg',
                 'image/jpeg': 'jpg',
                 'image/png': 'png',
                 'image/webp': 'webp',
