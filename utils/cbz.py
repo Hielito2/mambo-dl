@@ -6,7 +6,14 @@ from cbz.page import PageInfo
 
 
 def cbz_wu(**kwargs):
+    
+
     path = Path(kwargs['path'])
+    # Check before anything
+    cbz_path = kwargs['output'] / f'{path.name}.cbz'
+    if Path(cbz_path).exists():
+        return None
+    
     paths = list(path.iterdir())
 
     # Load each page from the 'images' folder into a list of PageInfo objects
@@ -39,7 +46,7 @@ def cbz_wu(**kwargs):
     cbz_content = comic.pack()
 
     # Define the path where the CBZ file will be saved
-    cbz_path = kwargs['output'] / f'{path.name}.cbz'
+    
 
     # Write the CBZ content to the specified path
     cbz_path.write_bytes(cbz_content)
