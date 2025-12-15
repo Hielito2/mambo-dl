@@ -17,6 +17,8 @@ SOURCES_DIR = (Path(__file__).parent / "scrapers")
 
 DOWNLOAD = Path('/mnt/ssd/Manga-Scrape/')
 
+debug = True
+
 class Manga():
     def __init__(self, **kwargs) -> None:
         self.url = kwargs['url']
@@ -185,13 +187,23 @@ class Manga():
         create_directory(self.series_path)
 
 
+def get_take_time(task, start):
+    end = time.time()
+    print(f"[TASK] {task} took: {end - start}")
+
 
 def download_manga(**kwargs):
+    start = time.time()
     # class
     serie = Manga(**kwargs)
     serie.set_client()
     #
+    if debug:
+        get_take_time("set_client", start)
+    #
     chapters = serie.get_chapters()
+    if debug:
+        get_take_time("get_chapters", start)
     all_chapters_data = serie.chapters_iter(chapters)
     for chapter_data in all_chapters_data:
         chapter_images = serie.get_image_urls(chapter_data)

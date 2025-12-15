@@ -8,7 +8,7 @@ SITE = "inventariooculto" #same as url_pattern
 WAIT = 5
 COOKIES = True
 GROUP = "Inventario-Oculto"
-
+DEBUG = True
 
 class Manga:
 
@@ -19,7 +19,7 @@ class Manga:
     
 
     def set_client(self, cookies, user_agent):
-        self.user_agent = user_agent.safari
+        self.user_agent = user_agent.opera
         
         self.client = httpx.Client(headers={"User-Agent": self.user_agent})
         if not cookies == {}:
@@ -38,7 +38,7 @@ class Manga:
         return WAIT
 
         
-    def debug(self, html):
+    def write_html(self, html):
         from pathlib import Path
         htm = (Path(__file__).parent.parent.resolve() / 'debug' / f'{SITE}.html')
         with open(htm, "w") as f:
@@ -56,82 +56,84 @@ class Manga:
         return headers, False
     
 
-    def get_chapters(self):
-        try:
-            # Get the series page
-            page = self.client.get(url=self.url, follow_redirects=True)
-            if page.status_code != 200:
-                raise ValueError
-            soup = BeautifulSoup(page.content, "lxml")
-            serie_name = str(soup.find("div", class_="post-title").find('h1').text).strip()
+    def chapters_block_request(self):
+        # Get the series page
+        page = self.client.get(url=self.url, follow_redirects=True)
+        if page.status_code != 200:
+            raise ValueError("[inventario-Oculto] Error at making a request")
+        soup = BeautifulSoup(page.content, "lxml")
+        self.serie_name = str(soup.find("div", class_="post-title").find('h1').text).strip()
 
-            if self.url.endswith('/'):
-                new_url = (self.url + "ajax/chapters/")
-            else:
-                new_url = (self.url + "/ajax/chapters/")
-            
-            time.sleep(2)
-            b = self.client.post(url=new_url)
-            self.debug(b.text)
-            if b.status_code != 200:
-                raise ValueError
-        except Exception as e:
-            print(f"Error in making the requests {e}")
+        if self.url.endswith('/'):
+            new_url = (self.url + "ajax/chapters/")
+        else:
+            new_url = (self.url + "/ajax/chapters/")
         
-        #
-        CHAPTERS = []
-        # Scrape myDict = { k:v for (k,v) in zip(keys, values)}  
-        soup = BeautifulSoup(b.content, "lxml")
-        content_block = soup.find("ul", class_="main version-chap volumns")
-        if content_block == None:
-            content_block = soup.find("ul", class_="main version-chap no-volumn")
-        try:
-            volumes_blocks = content_block.find_all("a", class_="has-child")
-            chapters_block = content_block.find_all("ul", class_="sub-chap-list")
-        except Exception as e:
-            print("Error in finding the stuff in the HTML")
+        return new_url
 
-        try:
-            # Get Chapters with volume
-            for volume, chapters in zip(reversed(volumes_blocks), reversed(chapters_block)):
-                vol_number = int(volume.text.split(' ')[1])
-                for i in reversed(chapters.find_all("a")):
-                    chapter_url = i.get("href")
-                    try:
-                        chapter_number = float(i.text.strip().split(" ")[1])
-                    except:
-                        chapter_number = round(float(previous_chapter+0.22), 2)
 
-                    CHAPTERS.append({
-                        'volume': vol_number,
-                        'chapter_number': chapter_number,
-                        'chapter_url': chapter_url
-                    })
-                    previous_chapter = chapter_number
-            
-            #print(CHAPTERS)
-            # Get Chapters without volume
-            for chapter in content_block.find_all('a'):
-                if not self.url in chapter.get("href", "") or "volumen" in chapter.get("href", "") or isinstance(chapter.get("title"), str): 
+    def find_chapters(self, content_block: BeautifulSoup):
+        # Get the chapters that have a volume
+        chapters = []
+
+        def get_volume_chapters(data, volume_number):
+            for chapter in data.find_all('a'):
+                if not "https://inventariooculto.com/manga" in chapter.get("href"):
                     continue
-                else:
-                    chapter_url = chapter.get("href")
-                    try:
-                        chapter_number = float(chapter.text.strip().split(" ")[1])
-                    except:
-                        chapter_number = extra
-                        extra+=1
-                    CHAPTERS.append({
-                        'volume': 0,
-                        'chapter_number': chapter_number,
-                        'chapter_url': chapter_url
-                    })
-        except Exception as e:
-            print(f"Error in getting chapter number and url and saving it\n{e}")
-        #print(CHAPTERS)
-        CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
+                chapter_url = chapter.get("href")
+                chapter_number = float(chapter.text.split(" ")[1].strip())
+                datax = {
+                    'volume': volume_number,
+                    'chapter_number': chapter_number,
+                    'chapter_url': chapter_url
+                }
+                chapters.append(datax)
         
-        return serie_name, CHAPTERS
+        def get_single_chapter(datax, volume_number):
+            chapter = datax.find('a')
+            if not "https://inventariooculto.com/manga" in chapter.get("href"):
+                return
+            chapter_url = chapter.get("href")
+            chapter_number = float(chapter.text.split(" ")[1].strip())
+            data = {
+                'volume': volume_number,
+                'chapter_number': chapter_number,
+                'chapter_url': chapter_url
+            }
+            chapters.append(data)
+    
+        for volume in  content_block.find_all("li"):
+            if 'class' in volume.attrs and 'has-child' in volume.attrs['class']:
+                volume_number = int(volume.find('a').text.split(" ")[1].strip())
+                get_volume_chapters(volume, volume_number)
+            elif volume.attrs == {}:
+                break
+            else:
+                volume_number = 0
+                get_single_chapter(volume, volume_number)          
+
+        return chapters
+
+
+
+    def get_chapters(self):
+        url = self.chapters_block_request()
+        
+        request = self.client.post(url=url)
+        if DEBUG:
+            self.write_html(request.text)
+        if request.status_code != 200:
+            raise ValueError("[inventario-Oculto] Error at making a request")
+        #
+        soup = BeautifulSoup(request.content, "lxml")
+        content_block = soup.find("div", class_="page-content-listing single-page")
+        chapters = self.find_chapters(content_block)
+        
+        chapters = sorted(chapters, key=itemgetter('chapter_number'))
+        if DEBUG:
+            for a in chapters:
+                print(a)
+        return self.serie_name, chapters
     
 
     def get_images_url(self, url: str):
@@ -139,7 +141,7 @@ class Manga:
         if r.status_code != 200:
             raise ValueError
         if True:
-            self.debug(r.text)
+            self.write_html(r.text)
 
         soup = BeautifulSoup(r.content, "lxml")
         images = [image.get("src").strip() for image in soup.find("div", class_="reading-content").find_all("img")]
