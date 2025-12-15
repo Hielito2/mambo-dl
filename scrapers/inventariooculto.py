@@ -14,24 +14,23 @@ class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?inventariooculto\.com/"
 
-    def __init__(self, url, **kwargs) -> None:
+    def __init__(self, url) -> None:
         self.url = url
     
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
-
+    def set_client(self, cookies, user_agent):
+        self.user_agent = user_agent.safari
         
-        self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-        if not kwargs['cookies'] == {}:
+        self.client = httpx.Client(headers={"User-Agent": self.user_agent})
+        if not cookies == {}:
             print(f"[Inventario] using existing cookies")
-            self.client.cookies.jar._cookies.update(kwargs['cookies'])
+            self.client.cookies.jar._cookies.update(cookies)
     
     
     def get_group_name(self):
         return GROUP
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
     
 
@@ -65,7 +64,6 @@ class Manga:
                 raise ValueError
             soup = BeautifulSoup(page.content, "lxml")
             serie_name = str(soup.find("div", class_="post-title").find('h1').text).strip()
-            
 
             if self.url.endswith('/'):
                 new_url = (self.url + "ajax/chapters/")

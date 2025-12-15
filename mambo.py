@@ -1,6 +1,6 @@
 import click
 import re
-from core import main, create_cbz
+from core import download_manga, create_cbz
 
 @click.group()
 def cli():
@@ -29,7 +29,7 @@ def dl(url, chapters, group_code):
 
     if chapters == '0000':
         limit = False
-        start_chapter, end_chapter = None, None
+        start_chapter, end_chapter = 0, 9999
     else:
         limit = True
         # Regex to parse formats like "1-10", "5", "10-"
@@ -41,7 +41,7 @@ def dl(url, chapters, group_code):
             end_chapter = int(end_str)
             print(f"Downloading range: from {start_chapter} to {end_chapter}")
 
-    main(url, limit=limit, start_chapter=start_chapter, end_chapter=end_chapter, group_code=group_code)
+    download_manga(url=url, limit=limit, first_chapter=start_chapter, last_chapter=end_chapter, group_code=group_code)
 
 @cli.command()
 @click.argument('path')
