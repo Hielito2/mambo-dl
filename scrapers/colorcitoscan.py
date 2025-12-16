@@ -10,26 +10,23 @@ COOKIES = True
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?colorcitoscan\.com/"
-    def __init__(self, url, **kwargs) -> None:
+    def __init__(self, url) -> None:
         self.url = url
     
+    def set_client(self, cookies, user_agent):
+        self.user_agent = user_agent.opera
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
-
-        if kwargs['cookies'] == {}:
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-        else:
+        if not cookies == {}:
             print(f"[{SITE}] using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-            self.client.cookies.jar._cookies.update(kwargs['cookies'])
+            self.client = httpx.Client(headers={"User-Agent":self.user_agent})
+            self.client.cookies.jar._cookies.update(cookies)
     
 
     def get_group_name(self):
         return self.group_name
     
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
 
 
@@ -62,7 +59,7 @@ class Manga:
             raise ValueError
         soup = BeautifulSoup(page.content, "lxml")
         serie_name = soup.find('title').text.split("|")[0].strip()
-        self.group_name = soup.find('a', class_="w-fit flex gap-3 items-center").text
+        self.group_name = soup.find('a', class_="w-fit flex gap-3 items-center").text.strip()
         
         chapters_block = soup.find('div', class_="w-full flex flex-col gap-3")
         chapters_get = chapters_block.find_all('a')

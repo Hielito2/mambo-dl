@@ -12,21 +12,20 @@ class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?zonatmo\.com/"
 
-    def __init__(self, url, **kwargs) -> None:
+    def __init__(self, url, group_code) -> None:
         self.url = url
-        self.group_code = kwargs['group_code']
+        self.group_code = group_code
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
-        if kwargs['cookies'] == {}:
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-        else:
-            print(f"[{SITE}] using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-            self.client.cookies.jar._cookies.update(kwargs['cookies'])
+    def set_client(self, cookies, user_agent):
+        self.user_agent = user_agent.opera
+
+        self.client = httpx.Client(headers={"User-Agent": self.user_agent})
+        if not cookies == {}:
+            print(f"[Mangadex] using existing cookies")
+            self.client.cookies.jar._cookies.update(cookies)
             
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
     
 

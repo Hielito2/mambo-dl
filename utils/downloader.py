@@ -60,7 +60,9 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                     async with asyncio.Semaphore(5):
                         for _ in range(5):
                             try:
-                                response = client.get(image)
+                                response = client.get(image, follow_redirects=True)
+                                
+                                
                                 response.raise_for_status()
                                 content_type = response.headers.get('Content-Type')
                                 extension = extension_mapping.get(content_type, 'bin')
@@ -76,8 +78,7 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                                 break  
                             except Exception as e:
                                 print(f"Failed to download image: {str(e)}")
-                                print(image_path.stem)
-                                time.sleep(20)
+                                time.sleep(6)
                                 continue    
 
                 async def asyy():

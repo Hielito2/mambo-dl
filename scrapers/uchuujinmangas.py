@@ -4,33 +4,31 @@ from operator import itemgetter
 
 
 SITE = "uchuujinmangas" #same as url_pattern
-WAIT = 15
+WAIT = 10
 COOKIES = True
 GROUP = "UCHUUJIN"
 
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?uchuujinmangas\.com/"
-    def __init__(self, url, **kwargs) -> None:
+    def __init__(self, url) -> None:
         self.url = url
     
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
+    def set_client(self, cookies, user_agent):
+        self.user_agent = user_agent.opera
 
-        if kwargs['cookies'] == {}:
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-        else:
+        self.client = httpx.Client(headers={"User-Agent": self.user_agent})
+        if not cookies == {}:
             print(f"[{SITE}] using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-            self.client.cookies.jar._cookies.update(kwargs['cookies'])
+            self.client.cookies.jar._cookies.update(cookies)
     
 
     def get_group_name(self):
         return GROUP
     
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
 
     def wait(self):

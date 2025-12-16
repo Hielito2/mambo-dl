@@ -15,24 +15,26 @@ COOKIES = False
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?mangadex\.org/"
-    def __init__(self, url, **kwargs) -> None:
-        if "mangadex" in kwargs['group_code']:
-            self.group_code = kwargs['group_code'].split("/")[4]
+    def __init__(self, url, group_code) -> None:
+        if "mangadex" in group_code:
+            self.group_code = group_code.split("/")[4]
         else:
-            self.group_code = kwargs['group_code']  
+            self.group_code = group_code
         self.url = url.split('/')[4]
     
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
-        self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent'], "Origin": "https://mangadex.org", "Referer": "https://mangadex.org/"})
+    def set_client(self, cookies, user_agent):
+        self.user_agent = user_agent.opera
+        self.client = httpx.Client(headers={"User-Agent": self.user_agent, 
+                                            "Origin": "https://mangadex.org", 
+                                            "Referer": "https://mangadex.org/"})
 
 
     def wait(self):
         return WAIT
 
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
         
 
@@ -115,11 +117,16 @@ class Manga:
         
         #Get the serie name
         a = self.client.get(f"https://api.mangadex.org/manga/{self.url}")
+        a.raise_for_status()
         try:
             serie_name = a.json()['data']['attributes']['title']['en']
         except:
-            serie_name = a.json()['data']['attributes']['altTitles'][0]['en']
-        
+            try: # Should make a function of this
+                serie_name = a.json()['data']['attributes']['altTitles'][0]['en']
+            except:
+                serie_name = a.json()['data']['attributes']['altTitles'][1]['en']
+            
+        serie_name = str(serie_name).strip().replace(",", "")
         # Get the chapters id
         response = page.json()
         CHAPTERS = []

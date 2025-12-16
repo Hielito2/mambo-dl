@@ -23,8 +23,12 @@ def cli():
     default=None,       
     help='[Mangadex] The specific group link or code.'
 )
-
-def dl(url, chapters, group_code):
+@click.option(
+    '-all', 
+    is_flag=True,       
+    help='Download all series from a website, go brrr.' # Don't know how to efficient do it
+)
+def dl(url, chapters, group_code, all):
     """Download manga from URL"""
 
     if chapters == '0000':
@@ -41,7 +45,7 @@ def dl(url, chapters, group_code):
             end_chapter = int(end_str)
             print(f"Downloading range: from {start_chapter} to {end_chapter}")
 
-    download_manga(url=url, limit=limit, first_chapter=start_chapter, last_chapter=end_chapter, group_code=group_code)
+    download_manga(url=url, limit=limit, first_chapter=start_chapter, last_chapter=end_chapter, group_code=group_code, all=all)
 
 @cli.command()
 @click.argument('path')

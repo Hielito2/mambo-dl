@@ -3,7 +3,7 @@ import time
 import re
 from bs4 import BeautifulSoup
 from operator import itemgetter
-
+from playwright.sync_api import sync_playwright
 
 
 SITE = "mangasnosekai" #same as url_pattern
@@ -22,25 +22,98 @@ def clean_filename(name: str, replacement: str = "") -> str:
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?mangasnosekai\.com/"
-    def __init__(self, url, **kwargs) -> None:
+    def __init__(self, url) -> None:
         self.url = url
     
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
+    def set_client(self, cookies, user_agent):
+        cookies2, user_agent2 = self.get_session_cookies()
+        self.user_agent = str(user_agent2)
+        print(f"\nCOokies: {cookies2}")
+        print(f"self.user_agent: {self.user_agent}")
 
-        if kwargs['cookies'] == {}:
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
-        else:
-            print(f"[mangasnosekai] using existing cookies")
-            self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']}, cookies=kwargs['cookies'])
-        
+        self.client = httpx.Client(headers={"User-Agent": user_agent2, "Referer": "https://mangasnosekai.com"}, cookies=cookies2)
+        # Test client
+        test = self.client.post(url="https://mangasnosekai.com")
+        print(test.status_code)
+        if test.status_code != 200: # NOt working, I expected to work
+            print(test.headers)
+            print(test.text)
+            raise ValueError("COookies not working aaa")
+
+
+    def get_session_cookies(self) -> tuple[dict, str] | tuple[None, None]:
+        """
+        Opens a URL using Playwright, waits for cookies to be set for the domain,
+        and returns them in 'httpx' format along with the User-Agent string.
+
+        Args:
+            url: The URL to navigate to (e.g., "https://www.example.com").
+
+        Returns:
+            A tuple containing:
+            1. cookies_for_httpx (dict): A dictionary of cookies formatted for httpx
+            (e.g., {'cookie_name': 'cookie_value'}).
+            2. user_agent (str): The User-Agent string used by the browser.
+            Returns (None, None) if no cookies are found.
+        """
+        # Thanks Gemini
+        # 1. Initialize Playwright and Browser
+        url = "https://mangasnosekai.com"
+        with sync_playwright() as p:
+            # Use a Chromium browser instance
+            browser = p.chromium.launch(headless=False, args=['--disable-blink-features=AutomationControlled'],
+                                        executable_path="/usr/bin/google-chrome-stable") 
+            
+            # Create a new context (like a fresh browser session)
+            context = browser.new_context()
+            
+            # Get the default User-Agent string for the context
+            user_agent = context.pages[0].evaluate('navigator.userAgent') if context.pages else browser.new_page().evaluate('navigator.userAgent')
+            
+            # 2. Navigate to the URL
+            try:
+                page = context.new_page()
+                # Navigate and wait until the 'load' event (when the page is fully loaded)
+                page.goto(url, wait_until="load")
+                
+            except Exception as e:
+                print(f"Error navigating to {url}: {e}")
+                browser.close()
+                return None, None
+                
+            # 3. Wait for Cookies and Format
+            
+            # We'll wait a brief moment for the site to set cookies, if they're 
+            # set via client-side JavaScript. For most sites, the cookies are
+            # set upon initial request and are immediately available.
+            # This explicit wait is a safeguard.
+            page.wait_for_timeout(3000) # Wait for 3 seconds max
+
+            # Get all cookies for the current context (which includes cookies for the navigated domain)
+            playwright_cookies = context.cookies()
+            
+            # Check if any cookies were found
+            while len(playwright_cookies) < 2:
+                # 4. Format Cookies for httpx
+                # httpx expects cookies as a simple dictionary: {'name': 'value', ...}    
+                playwright_cookies = context.cookies()
+                time.sleep(3)
+
+            
+            cookies_for_httpx = {}
+            for cookie in playwright_cookies:
+                cookies_for_httpx[cookie['name']] = cookie['value']
+            # 5. Clean up and Return
+            browser.close()
+            
+            return cookies_for_httpx, user_agent
 
     def get_group_name(self):
         return GROUP
     
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
     
 
@@ -71,7 +144,7 @@ class Manga:
         # Get the series page
         page = self.client.get(url=self.url, follow_redirects=True)
         if page.status_code != 200:
-            raise ValueError
+            raise ValueError("NOT 200 code. cookies probably")
         soup = BeautifulSoup(page.content, "lxml")
         
         self.debug(page.text)

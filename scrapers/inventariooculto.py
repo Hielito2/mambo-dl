@@ -1,5 +1,6 @@
 import httpx
 import time
+import random
 from bs4 import BeautifulSoup
 from operator import itemgetter
 
@@ -8,7 +9,7 @@ SITE = "inventariooculto" #same as url_pattern
 WAIT = 5
 COOKIES = True
 GROUP = "Inventario-Oculto"
-DEBUG = True
+DEBUG = False
 
 class Manga:
 
@@ -89,12 +90,16 @@ class Manga:
                 }
                 chapters.append(datax)
         
+        
         def get_single_chapter(datax, volume_number):
             chapter = datax.find('a')
             if not "https://inventariooculto.com/manga" in chapter.get("href"):
                 return
             chapter_url = chapter.get("href")
-            chapter_number = float(chapter.text.split(" ")[1].strip())
+            try:
+                chapter_number = float(chapter.text.split(" ")[1].strip())
+            except:
+                chapter_number = random.randint(0, 999) # Not ideal but don't know what else
             data = {
                 'volume': volume_number,
                 'chapter_number': chapter_number,
@@ -113,10 +118,28 @@ class Manga:
                 get_single_chapter(volume, volume_number)          
 
         return chapters
+    
+     
+    def get_all_site_series(self):
+        url = "https://inventariooculto.com/manga/"
+        series = []
+        for i in range(10):
+            if i == 0:
+                new_url = url
+            else:
+                new_url = url + f"page/{i+1}/"
 
+            request = self.client.get(new_url)
+            if request.status_code != 200:
+                break
+            soup = BeautifulSoup(request.content, "lxml")
+            [series.append(manga.get('href')) for manga in soup.find_all('h3', class_="h5")]
+            time.sleep(3)
 
+        return series
 
     def get_chapters(self):
+
         url = self.chapters_block_request()
         
         request = self.client.post(url=url)

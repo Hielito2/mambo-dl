@@ -10,12 +10,12 @@ GROUP = "WORMS-ORGANIZATION"
 class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?senshimanga\.capibaratraductor\.com/"
-    def __init__(self, url, **kwargs) -> None:
+    def __init__(self, url) -> None:
         self.url = url.split("/")[-1]
         
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
+    def set_client(self, cookies, user_agent):
+        self.user_agent = user_agent.opera
         headers={"User-Agent": self.user_agent, 
                 "Referer": "https://senshimanga.capibaratraductor.com/",
                 "organization-domain": "senshimanga.capibaratraductor.com",
@@ -29,7 +29,7 @@ class Manga:
         return GROUP
 
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
 
     def debug(self, html):
@@ -43,8 +43,11 @@ class Manga:
         return WAIT
     
     def get_image_headers(self, **kwargs):
-        headers={"User-Agent": self.user_agent, "Alt-Used": "files.capibaratraductor.com",
-                           "Referer": "https://senshimanga.capibaratraductor.com/"}
+        headers={"User-Agent": self.user_agent, 
+                 "Referer": "https://senshimanga.capibaratraductor.com/",
+                 "Priority": "u=3",
+                 "Host": "files.capibaratraductor.com"
+                 }
         return headers, False
     
 

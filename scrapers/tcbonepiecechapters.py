@@ -15,12 +15,12 @@ class Manga:
         self.url = url
     
 
-    def set_client(self, **kwargs):
-        self.user_agent = kwargs['user_agent']
-        self.client = httpx.Client(headers={"User-Agent": kwargs['user_agent']})
+    def set_client(self, cookies, user_agent):
+        self.user_agent = user_agent.opera
+        self.client = httpx.Client(headers={"User-Agent": self.user_agent})
     
 
-    def cookies(self):
+    def use_cookies(self):
         return COOKIES
         
 

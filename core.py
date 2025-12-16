@@ -4,6 +4,7 @@ import re
 import sys
 import json
 import time
+import random
 from pathlib import Path
 
 from utils.downloader import download_image
@@ -21,7 +22,7 @@ debug = True
 
 class Manga():
     def __init__(self, **kwargs) -> None:
-        self.url = kwargs['url']
+        self.url = str(kwargs['url'])
         self.limit = kwargs['limit']
         self.first_chapter = int(kwargs['first_chapter'])
         self.last_chapter = int(kwargs['last_chapter'])
@@ -86,6 +87,9 @@ class Manga():
             pattern = getattr(scraper_class, 'URL_PATTERN')
             if re.match(pattern, self.url):
                 # Instantiate the class with the URL
+                sites_group = ['mangadex','zonatmo']
+                if any(group in self.url for group in sites_group):
+                    return scraper_class(self.url, self.group_code)
                 return scraper_class(self.url)
                 
         raise ValueError(f"Not found scraper for {self.url}")
@@ -105,6 +109,10 @@ class Manga():
             cookies = {}
         self.scraper.set_client(cookies=cookies, user_agent=agent())
 
+    
+    def get_wait(self):
+        return self.scraper.wait()
+        
 
     def update_cookies(self):
         site_cookies = self.scraper.use_cookies()
@@ -192,22 +200,30 @@ def get_take_time(task, start):
     print(f"[TASK] {task} took: {end - start}")
 
 
+def get_chapter_wait(start_time, site_wait):
+    end_time = time.time()
+    tooked_time = round(float(end_time - start_time), 2)
+    if tooked_time < site_wait and tooked_time > 0:
+        time_to_wait = round((site_wait - tooked_time), 2)
+        return random.uniform(time_to_wait, time_to_wait+1)
+    return random.randint(0,1)
+
+
 def download_manga(**kwargs):
-    start = time.time()
+    #start = time.time()
     # class
     serie = Manga(**kwargs)
     serie.set_client()
     #
-    if debug:
-        get_take_time("set_client", start)
-    #
     chapters = serie.get_chapters()
-    if debug:
-        get_take_time("get_chapters", start)
     all_chapters_data = serie.chapters_iter(chapters)
+    site_wait = serie.get_wait()
     for chapter_data in all_chapters_data:
+        start_time = time.time()
         chapter_images = serie.get_image_urls(chapter_data)
         serie.get_download(chapter_data, chapter_images)
+        wait_time = get_chapter_wait(start_time, site_wait)
+        time.sleep(wait_time)
 
 
 
