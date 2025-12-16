@@ -1,6 +1,9 @@
 import httpx
 import time
 import re
+import pickle
+
+from http.cookiejar import Cookie, CookieJar
 from bs4 import BeautifulSoup
 from operator import itemgetter
 from playwright.sync_api import sync_playwright
@@ -29,20 +32,20 @@ class Manga:
     def set_client(self, cookies, user_agent):
         cookies2, user_agent2 = self.get_session_cookies()
         self.user_agent = str(user_agent2)
-        print(f"\nCOokies: {cookies2}")
-        print(f"self.user_agent: {self.user_agent}")
+        #print(f"\nCOokies: {cookies2}")
+        #print("")
+        #print(f"self.user_agent: {self.user_agent}")
 
         self.client = httpx.Client(headers={"User-Agent": user_agent2, "Referer": "https://mangasnosekai.com"}, cookies=cookies2)
+        #self.client.cookies.jar._cookies.update(cookies2)
         # Test client
         test = self.client.post(url="https://mangasnosekai.com")
-        print(test.status_code)
         if test.status_code != 200: # NOt working, I expected to work
             print(test.headers)
-            print(test.text)
             raise ValueError("COookies not working aaa")
 
 
-    def get_session_cookies(self) -> tuple[dict, str] | tuple[None, None]:
+    def get_session_cookies(self):
         """
         Opens a URL using Playwright, waits for cookies to be set for the domain,
         and returns them in 'httpx' format along with the User-Agent string.
@@ -60,6 +63,7 @@ class Manga:
         # Thanks Gemini
         # 1. Initialize Playwright and Browser
         url = "https://mangasnosekai.com"
+        jar = httpx.Cookies()
         with sync_playwright() as p:
             # Use a Chromium browser instance
             browser = p.chromium.launch(headless=False, args=['--disable-blink-features=AutomationControlled'],
@@ -69,14 +73,14 @@ class Manga:
             context = browser.new_context()
             
             # Get the default User-Agent string for the context
-            user_agent = context.pages[0].evaluate('navigator.userAgent') if context.pages else browser.new_page().evaluate('navigator.userAgent')
+            
             
             # 2. Navigate to the URL
             try:
                 page = context.new_page()
                 # Navigate and wait until the 'load' event (when the page is fully loaded)
-                page.goto(url, wait_until="load")
-                
+                page.goto(url)
+                user_agent = page.evaluate("navigator.userAgent")
             except Exception as e:
                 print(f"Error navigating to {url}: {e}")
                 browser.close()
@@ -100,14 +104,39 @@ class Manga:
                 playwright_cookies = context.cookies()
                 time.sleep(3)
 
+            #print("playwright_cookies: \n")
+            #print(playwright_cookies)
+            jar = CookieJar()
+        
+            for pc in playwright_cookies:
+                # Construct the Cookie object correctly
+                c = Cookie(
+                    version=0,
+                    name=pc['name'],
+                    value=pc['value'],
+                    port=None,
+                    port_specified=False,
+                    domain=pc['domain'],
+                    domain_specified=True,
+                    domain_initial_dot=pc['domain'].startswith('.'),
+                    path=pc['path'],
+                    path_specified=True,
+                    secure=pc['secure'],
+                    expires=int(pc['expires']) if pc.get('expires') and pc['expires'] != -1 else None,
+                    discard=False if pc.get('expires') and pc['expires'] != -1 else True,
+                    comment=None,
+                    comment_url=None,
+                    rest={'HttpOnly': str(pc.get('httpOnly', False))},
+                    rfc2109=False,
+                )
+                jar.set_cookie(c)
+                # 5. Clean up and Return
+            #browser.close()
             
-            cookies_for_httpx = {}
-            for cookie in playwright_cookies:
-                cookies_for_httpx[cookie['name']] = cookie['value']
-            # 5. Clean up and Return
-            browser.close()
+            # 3. Wrap the standard jar into httpx.Cookies
+            #print("httpx_cookies: ", jar)
             
-            return cookies_for_httpx, user_agent
+            return jar, user_agent
 
     def get_group_name(self):
         return GROUP
@@ -135,8 +164,8 @@ class Manga:
     
 
     def get_image_headers(self, **kwargs):
-        headers = headers={"User-Agent": self.user_agent, "Referer": kwargs['chapter_url']}
-        return headers, False
+        headers = headers={"User-Agent": self.user_agent, "Referer": "https://mangasnosekai.com/"}
+        return headers, True
     
 
     def get_chapters(self):

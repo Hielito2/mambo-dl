@@ -64,8 +64,12 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                                 
                                 
                                 response.raise_for_status()
-                                content_type = response.headers.get('Content-Type')
-                                extension = extension_mapping.get(content_type, 'bin')
+                                content_type = response.headers.get('Content-Type', 'bin')
+                                try:
+                                    extension = extension_mapping.get(content_type)                            
+                                except:
+                                    extension = image.split('.')[-1]
+                                    
                                     
                                 image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
                                 
@@ -78,6 +82,7 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                                 break  
                             except Exception as e:
                                 print(f"Failed to download image: {str(e)}")
+                                print(f"Headers: {headers}")
                                 time.sleep(6)
                                 continue    
 

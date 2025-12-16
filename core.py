@@ -177,9 +177,9 @@ class Manga():
 
     def get_download(self, chapter_data, chapter_images):
         headers, use_cookies = self.scraper.get_image_headers(chapter_url=chapter_data['chapter_url'])
-        if not use_cookies:
-            cookies = {}
-        else:
+        
+        cookies = {}
+        if use_cookies:
             cookies = self.scraper.get_cookies()
         self.series_paths()
         download_image(serie_name=self.serie_name, volumen=chapter_data['volume'], 
@@ -187,6 +187,7 @@ class Manga():
                        chapter_images=chapter_images, series_path=self.series_path, 
                        headers=headers, cookies=cookies, 
                        group_name=self.group_name)
+        self.update_cookies()
         
 
     def series_paths(self):
@@ -243,15 +244,17 @@ def create_cbz(path: str, language: str, series:str):
             continue
         # 2.5 Get volume or chapter
         # 2.6 Chapter
-        if not chapter.name.split(' (')[0].split(' ')[-1].startswith("v"):            
-            volume = False
-            number = float(chapter.name.split(" ")[-2])
-            title = f"Chapter {number}"
-        else:
+        blok = chapter.name.split(series)[1].strip().split(" ")[0]
+        if "v" in blok:
             # Assume is volume
             volume = True
-            number = int(chapter.name.split(' (')[0].split(' ')[-1][1:])
+            number = int(blok.replace("v", ""))
             title = f"Volume {number}"
+        else:
+            volume = False
+            number = float(blok)
+            title = f"Chapter {number}"
+            
 
         # 3. Create cbz 
         cbz_wu(path=chapter, volume=volume, number=number, title=title, language=language, series=series, output=output_path)
