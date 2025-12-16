@@ -26,24 +26,36 @@ class Manga:
 
     URL_PATTERN = r"^https?://(www\.)?mangasnosekai\.com/"
     def __init__(self, url) -> None:
-        self.url = url
+        self.url = url 
+    
+
+    def test_cookies(self, cookies, user_agent):
+        cookies = httpx.Cookies(cookies)
+        client = httpx.Client( headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com"})
+        client.cookies.jar._cookies.update(cookies)
+        test = client.get(url="https://mangasnosekai.com")
+        print(test.status_code)
+        if test.status_code == 200: 
+            print("[Valid cookies]")
+            return True, client
+        return False
     
 
     def set_client(self, cookies, user_agent):
-        cookies2, user_agent2 = self.get_session_cookies()
-        self.user_agent = str(user_agent2)
+        # Test existing cookies
+        agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+        valid_cookies, client = self.test_cookies(cookies, agent)
+        if not valid_cookies:
+            cookies, agent = self.get_session_cookies()
+            self.client = httpx.Client(headers={"User-Agent": agent, "Referer": "https://mangasnosekai.com"}, cookies=cookies)            
+        if valid_cookies:
+            self.client = client
+        self.user_agent = agent
         #print(f"\nCOokies: {cookies2}")
         #print("")
         #print(f"self.user_agent: {self.user_agent}")
 
-        self.client = httpx.Client(headers={"User-Agent": user_agent2, "Referer": "https://mangasnosekai.com"}, cookies=cookies2)
-        #self.client.cookies.jar._cookies.update(cookies2)
-        # Test client
-        test = self.client.post(url="https://mangasnosekai.com")
-        if test.status_code != 200: # NOt working, I expected to work
-            print(test.headers)
-            raise ValueError("COookies not working aaa")
-
+        
 
     def get_session_cookies(self):
         """
@@ -137,6 +149,7 @@ class Manga:
             #print("httpx_cookies: ", jar)
             
             return jar, user_agent
+
 
     def get_group_name(self):
         return GROUP
