@@ -82,7 +82,7 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                                 break  
                             except Exception as e:
                                 print(f"Failed to download image: {str(e)}")
-                                print(f"Headers: {headers}")
+                                #print(f"Headers: {headers}")
                                 time.sleep(6)
                                 continue    
 

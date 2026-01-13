@@ -21,7 +21,6 @@ class Manga:
 
     def set_client(self, cookies, user_agent):
         self.user_agent = user_agent.opera
-        
         self.client = httpx.Client(headers={"User-Agent": self.user_agent})
         if not cookies == {}:
             print(f"[Inventario] using existing cookies")
@@ -77,45 +76,28 @@ class Manga:
         # Get the chapters that have a volume
         chapters = []
 
-        def get_volume_chapters(data, volume_number):
-            for chapter in data.find_all('a'):
-                if not "https://inventariooculto.com/manga" in chapter.get("href"):
-                    continue
-                chapter_url = chapter.get("href")
-                chapter_number = float(chapter.text.split(" ")[1].strip())
-                datax = {
-                    'volume': volume_number,
-                    'chapter_number': chapter_number,
-                    'chapter_url': chapter_url
-                }
-                chapters.append(datax)
-        
-        
-        def get_single_chapter(datax, volume_number):
-            chapter = datax.find('a')
-            if not "https://inventariooculto.com/manga" in chapter.get("href"):
-                return
-            chapter_url = chapter.get("href")
+        for volume in content_block.find_all('a'):
+            if not "https://inventariooculto.com/manga" in volume.get("href"):
+                continue
+            
+            chapter_url = volume.get('href').strip()
+            #print(volume.parent.parent.parent.parent.parent.find('a').text)
             try:
-                chapter_number = float(chapter.text.split(" ")[1].strip())
+                volume_number = int(volume.find_parent(class_="has-child").find('a').text.split(' ')[1])
             except:
-                chapter_number = random.randint(0, 999) # Not ideal but don't know what else
+                volume_number = 0
+            
+            try:
+                chapter_number = float(volume.text.split(" ")[1])
+            except:
+                chapter_number = random.randint(300, 999) # Not ideal but don't know what else
+            
             data = {
                 'volume': volume_number,
                 'chapter_number': chapter_number,
                 'chapter_url': chapter_url
             }
             chapters.append(data)
-    
-        for volume in  content_block.find_all("li"):
-            if 'class' in volume.attrs and 'has-child' in volume.attrs['class']:
-                volume_number = int(volume.find('a').text.split(" ")[1].strip())
-                get_volume_chapters(volume, volume_number)
-            elif volume.attrs == {}:
-                break
-            else:
-                volume_number = 0
-                get_single_chapter(volume, volume_number)          
 
         return chapters
     
