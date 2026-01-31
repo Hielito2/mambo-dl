@@ -44,8 +44,11 @@ def dl(url, chapters, group_code, all):
             start_chapter = int(start_str)
             end_chapter = int(end_str)
             print(f"Downloading range: from {start_chapter} to {end_chapter}")
+        else:
+            return "No match mambo.py"
 
-    download_manga(url=url, limit=limit, first_chapter=start_chapter, last_chapter=end_chapter, group_code=group_code, all=all)
+    download_manga(url=url, limit=limit, first_chapter=start_chapter, 
+                   last_chapter=end_chapter, group_code=group_code, all=all)
 
 @cli.command()
 @click.argument('path')

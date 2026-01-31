@@ -37,8 +37,8 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                 'image/jpeg': 'jpg',
                 'image/png': 'png',
                 'image/webp': 'webp',
-                'image/avif': 'avif',
-            }
+                'image/avif': 'avif'
+    }
     """Download a single image with error handling"""
     chapter_number = chapter_volumen_number(chapter_number)
     volumen = chapter_volumen_number(volumen)
@@ -66,9 +66,14 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
                                 response.raise_for_status()
                                 content_type = response.headers.get('Content-Type', 'bin')
                                 try:
-                                    extension = extension_mapping.get(content_type)                            
+                                    if content_type not in extension_mapping.keys():
+                                        url_extension = str(image).split('.')[-1]
+                                        if url_extension in extension_mapping.values():
+                                            extension = url_extension
+                                    else:
+                                        extension = extension_mapping.get(content_type)                            
                                 except:
-                                    extension = image.split('.')[-1]
+                                    extension = "bin"
                                     
                                     
                                 image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
@@ -97,3 +102,4 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
         finally:
             progress.update(task, visible=True) # Didn't work as I expected
 
+    return download_path

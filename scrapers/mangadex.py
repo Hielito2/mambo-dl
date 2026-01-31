@@ -64,7 +64,11 @@ class Manga:
         url = f"https://api.mangadex.org/group/{self.group_code}?includes[]=leader&includes[]=member"
         response = self.client.get(url)
         #self.debug(response.text)
-        group_name = response.json()['data']['attributes']['name']
+        try:
+            group_name = response.json()['data']['attributes']['name']
+        except:
+            print(response.json())
+            raise ValueError
         return group_name
     
     
@@ -99,7 +103,7 @@ class Manga:
                     new_chapters.append(chapter)
                 else:
                     progress.update(task1, advance=1, description=f"[red]NOT FOUND [orange]{chapter['chapter_number']}...")
-                time.sleep(0.5)
+                time.sleep(0.2)
             
         finally:
             progress.update(task1, visible=True)

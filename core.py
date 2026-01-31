@@ -5,6 +5,8 @@ import sys
 import json
 import time
 import random
+import subprocess
+
 from pathlib import Path
 
 from utils.downloader import download_image
@@ -165,14 +167,20 @@ class Manga():
     def get_image_urls(self, chapter_data):
         chapter_images = self.scraper.get_images_url(chapter_data['chapter_url']) # THe urls
 
-        if len(chapter_images) == 0:
-            raise ValueError("[get_image_urls] 0 Images got")
+        #if len(chapter_images) == 0:
+        #    raise ValueError("[get_image_urls] 0 Images got")
 
         return chapter_images
     
     def chapters_iter(self, chapters):
         for chapter_data in chapters:
             yield chapter_data
+
+
+    def optimize_imges(self, download_path):
+        command = f'oxipng -q -o 4 -s --sequential 5 --threads 10 -r "{str(download_path)}"'
+        subprocess.run(command, shell=True, check=True)
+
 
 
     def get_download(self, chapter_data, chapter_images):
@@ -182,11 +190,13 @@ class Manga():
         if use_cookies:
             cookies = self.scraper.get_cookies()
         self.series_paths()
-        download_image(serie_name=self.serie_name, volumen=chapter_data['volume'], 
+        download_path = download_image(serie_name=self.serie_name, volumen=chapter_data['volume'], 
                        chapter_number=self.check_float(chapter_data['chapter_number']), 
                        chapter_images=chapter_images, series_path=self.series_path, 
                        headers=headers, cookies=cookies, 
                        group_name=self.group_name)
+        #print("optimizing")
+        #self.optimize_imges(download_path)
         self.update_cookies()
         
 
@@ -217,11 +227,12 @@ def download_manga(**kwargs):
     serie.set_client()
     #
     chapters = serie.get_chapters()
-    all_chapters_data = serie.chapters_iter(chapters)
     site_wait = serie.get_wait()
-    for chapter_data in all_chapters_data:
+    for chapter_data in serie.chapters_iter(chapters):
         start_time = time.time()
         chapter_images = serie.get_image_urls(chapter_data)
+        if len(chapter_images) < 1:
+            continue
         serie.get_download(chapter_data, chapter_images)
         wait_time = get_chapter_wait(start_time, site_wait)
         time.sleep(wait_time)

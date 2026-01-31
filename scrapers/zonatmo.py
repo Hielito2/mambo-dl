@@ -21,7 +21,7 @@ class Manga:
 
         self.client = httpx.Client(headers={"User-Agent": self.user_agent})
         if not cookies == {}:
-            print(f"[Mangadex] using existing cookies")
+            print(f"[Zonatmo] using existing cookies")
             self.client.cookies.jar._cookies.update(cookies)
             
 
@@ -55,18 +55,18 @@ class Manga:
         return self.group_code
 
     def get_chapters(self):
-        try:
+     
             # Get the series page
             page = self.client.get(url=self.url, follow_redirects=True)
+            print(page.status_code)
             if page.status_code != 200:
-                raise ValueError
+                return 0
             
             soup = BeautifulSoup(page.content, "lxml")
             serie_name = soup.find('title').text.strip().split(" - ")[0]
             chapters_block = soup.find("ul",class_="list-group list-group-flush")
 
             chapters_info = chapters_block.find_all('li', class_="list-group-item p-0 bg-light upload-link")
-
             CHAPTERS = []            
             for chapter in reversed(chapters_info):
                 chapter_name = chapter.find('a', class_="btn-collapse").text.strip()
@@ -88,9 +88,7 @@ class Manga:
                         })
                         break
                         
-        except Exception as e:
-            print(f"Error in getting chapter number and url and saving it\n{e}")
-        finally:
+  
             CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
             return serie_name, CHAPTERS
     

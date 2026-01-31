@@ -83,17 +83,15 @@ class Manga:
         CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))    
 
         # get cookies
-        headers = {"User-Agent": self.user_agent, 
-                   "Origin": "https://colorcitoscan.com",
-                   "Referer": "https://colorcitoscan.com/",
-                   "Sec-Fetch-Site": "same-site"
-        }
+        #headers = {"User-Agent": self.user_agent, 
+        #           "Origin": "https://colorcitoscan.com",
+        #           "Referer": "https://colorcitoscan.com/",
+        #           "Sec-Fetch-Site": "same-site"
+        #}
         
-        self.client.post(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
-        self.client.options(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
+        #self.client.post(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
+        #self.client.options(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
 
-
-    
         return serie_name, CHAPTERS
     
 
@@ -101,34 +99,34 @@ class Manga:
         r = self.client.get(url=url)
         if r.status_code != 200:
             raise ValueError
-        if True:
-            self.debug(r.text)
+        #if True:
+        #    self.debug(r.text)
 
-        soup = BeautifulSoup(r.content, "lxml")
-        images_block = soup.find('div', class_="w-full max-w-4xl mx-auto px-2 sm:px-4")
+        try:
+            soup = BeautifulSoup(r.content, "lxml")
+            images_block = soup.find('div', class_="w-full max-w-4xl mx-auto px-2 sm:px-4")
 
-        images = [image.get('src').strip() for image in images_block.find_all('img')] 
+            images = [image.get('src').strip() for image in images_block.find_all('img')] 
+            # GET THE real URL
+            urls = images
+            '''headers={"User-Agent": self.user_agent, "Referer": "https://colorcitoscan.com/"}
 
-        # GET THE real URL
-        urls = []
-        headers={"User-Agent": self.user_agent, "Referer": "https://colorcitoscan.com/"}
-
-        for image in images:
-            response = httpx.get(url=image, headers=headers)
-            urls.append(response.headers['location'])
-        
+            for image in images:
+                response = httpx.get(url=image, headers=headers)
+                urls.append(response.headers['location'])'''
+        except:
+            raise ValueError("ERROR get_images_url IMaGES")
 
         # The site does it idk if is need it to scrape but I'll keep it
         # The site also have extras headers as "Next-Router-State-Tree", "Next-Url" but it seems is not that scrict :P
-        headers = {"User-Agent": self.user_agent, 
-                   "Origin": "https://colorcitoscan.com",
-                   "Referer": "https://colorcitoscan.com/",
-                   "Sec-Fetch-Site": "same-site"
-        }
+        #headers = {"User-Agent": self.user_agent, 
+        #           "Origin": "https://colorcitoscan.com",
+        #           "Referer": "https://colorcitoscan.com/",
+        #           "Sec-Fetch-Site": "same-site"
+        #}
         
-        self.client.post(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
-        self.client.options(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
-
+        #self.client.post(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
+        #self.client.options(url="https://api.colorcitoscan.com/user/verifyBookmark", headers=headers)
         return urls
         
 

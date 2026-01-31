@@ -9,20 +9,17 @@ GROUP = "WORMS-ORGANIZATION"
 
 class Manga:
 
-    URL_PATTERN = r"^https?://(www\.)?senshimanga\.capibaratraductor\.com/"
+    URL_PATTERN = r"^https?://(www\.)?capibaratraductor.com/senshimanga"
     def __init__(self, url) -> None:
         self.url = url.split("/")[-1]
         
 
     def set_client(self, cookies, user_agent):
         self.user_agent = user_agent.opera
-        headers={"User-Agent": self.user_agent, 
-                "Referer": "https://senshimanga.capibaratraductor.com/",
-                "organization-domain": "senshimanga.capibaratraductor.com",
-                "Authorization": "",
-                "Origin": "https://senshimanga.capibaratraductor.com"}
-      
-        self.client = httpx.Client(headers=headers)
+        self.headers={"User-Agent": self.user_agent, 
+                "Referer": "https://capibaratraductor.com/senshimanga",
+                "x-organization": "senshimanga"}
+        self.client = httpx.Client(headers=self.headers)
 
 
     def get_group_name(self):
@@ -44,20 +41,23 @@ class Manga:
     
     def get_image_headers(self, **kwargs):
         headers={"User-Agent": self.user_agent, 
-                 "Referer": "https://senshimanga.capibaratraductor.com/",
-                 "Priority": "u=3",
-                 "Host": "files.capibaratraductor.com"
+                 "Referer": "https://capibaratraductor.com/",
+                 "Priority": "u=5, i",
+                 "Host": "r2.capibaratraductor.com",
+                 "Sec-Fetch-Site": "same-site"
                  }
         return headers, False
     
 
     def get_chapters(self):
         # Get the series page
-        url = f"https://api.capibaratraductor.com/api/manga-custom/{self.url}"
-        page = self.client.get(url=url, follow_redirects=True)
+        url = f"https://capibaratraductor.com/api/manga-custom/{self.url}"
+        chapter_headers = self.headers
+        chapter_headers['Referer'] = f'https://capibaratraductor.com/senshimanga/manga/{self.url}'
+        page = self.client.get(url=url, follow_redirects=True, headers=chapter_headers)
         if page.status_code != 200:
             print(page.status_code)
-            raise ValueError
+            return 0
         
         self.debug(page.text)
         #
@@ -79,7 +79,7 @@ class Manga:
             print(f"Error in getting chapter number and url and saving it\n{e}")
         #print(CHAPTERS)
         CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
-        
+        #print(serie_name, CHAPTERS)
         return serie_name, CHAPTERS
     
 

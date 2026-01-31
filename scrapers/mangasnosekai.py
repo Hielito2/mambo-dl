@@ -30,24 +30,30 @@ class Manga:
     
 
     def test_cookies(self, cookies, user_agent):
-        cookies = httpx.Cookies(cookies)
-        client = httpx.Client( headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com"})
-        client.cookies.jar._cookies.update(cookies)
+        try:
+            client = httpx.Client( headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com"})
+            client.cookies.jar._cookies.update(cookies)
+        except:
+            client = httpx.Client( headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com"}, cookies=cookies)
+        
         test = client.get(url="https://mangasnosekai.com")
-        print(test.status_code)
         if test.status_code == 200: 
             print("[Valid cookies]")
             return True, client
-        return False
+        return False, client
     
 
     def set_client(self, cookies, user_agent):
         # Test existing cookies
         agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
         valid_cookies, client = self.test_cookies(cookies, agent)
-        if not valid_cookies:
-            cookies, agent = self.get_session_cookies()
-            self.client = httpx.Client(headers={"User-Agent": agent, "Referer": "https://mangasnosekai.com"}, cookies=cookies)            
+        try:
+            while not valid_cookies:
+                cookies, agent = self.get_session_cookies()
+                valid_cookies, client = self.test_cookies(cookies, agent)   
+                time.sleep(1)
+        except:
+            raise ValueError("Error getting the client")
         if valid_cookies:
             self.client = client
         self.user_agent = agent
@@ -189,7 +195,7 @@ class Manga:
             raise ValueError("NOT 200 code. cookies probably")
         soup = BeautifulSoup(page.content, "lxml")
         
-        self.debug(page.text)
+        #self.debug(page.text)
         
         serie_name = clean_filename(soup.find_all('p', class_="font-light text-white")[2].text.split("~")[0])
         
