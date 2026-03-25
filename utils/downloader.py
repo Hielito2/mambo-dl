@@ -41,6 +41,7 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
     }
     """Download a single image with error handling"""
     chapter_number = chapter_volumen_number(chapter_number)
+    #chapter_number = "{:.2f}".format(int(chapter_number))
     volumen = chapter_volumen_number(volumen)
     if volumen == "000":
         download_path = create_directory(Path(series_path, f"{serie_name} {chapter_number} ({group_name})"))
@@ -102,4 +103,3 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
         finally:
             progress.update(task, visible=True) # Didn't work as I expected
 
-    return download_path

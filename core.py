@@ -177,12 +177,6 @@ class Manga():
             yield chapter_data
 
 
-    def optimize_imges(self, download_path):
-        command = f'oxipng -q -o 4 -s --sequential 5 --threads 10 -r "{str(download_path)}"'
-        subprocess.run(command, shell=True, check=True)
-
-
-
     def get_download(self, chapter_data, chapter_images):
         headers, use_cookies = self.scraper.get_image_headers(chapter_url=chapter_data['chapter_url'])
         
@@ -190,14 +184,12 @@ class Manga():
         if use_cookies:
             cookies = self.scraper.get_cookies()
         self.series_paths()
-        download_path = download_image(serie_name=self.serie_name, volumen=chapter_data['volume'], 
+        download_image(serie_name=self.serie_name, volumen=chapter_data['volume'], 
                        chapter_number=self.check_float(chapter_data['chapter_number']), 
                        chapter_images=chapter_images, series_path=self.series_path, 
                        headers=headers, cookies=cookies, 
                        group_name=self.group_name)
-        #print("optimizing")
-        #self.optimize_imges(download_path)
-        self.update_cookies()
+        
         
 
     def series_paths(self):
@@ -234,6 +226,7 @@ def download_manga(**kwargs):
         if len(chapter_images) < 1:
             continue
         serie.get_download(chapter_data, chapter_images)
+        serie.update_cookies()
         wait_time = get_chapter_wait(start_time, site_wait)
         time.sleep(wait_time)
 
