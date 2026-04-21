@@ -20,7 +20,7 @@ SOURCES_DIR = (Path(__file__).parent / "scrapers")
 
 DOWNLOAD = Path('/mnt/ssd/Manga-Scrape/')
 
-debug = True
+DEBUG = True
 
 class Core:
     def __init__(self, **kwargs) -> None:
@@ -53,6 +53,9 @@ class Core:
                     scraper = module.Manga(self.url, self.group_code)
                 else:
                     scraper = module.Manga(self.url)
+                if scraper is None:
+                    print('None scraper? ')
+                    sys.exit()
         finally:
             return scraper
 
@@ -125,7 +128,8 @@ class Core:
         
         chapters = clean_chapters(chapters)
 
-        print(f'[CORE] ', chapters)
+        if DEBUG:
+            print(f'[CORE] ', chapters)
 
         return chapters
     
