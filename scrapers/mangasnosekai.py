@@ -7,12 +7,16 @@ from http.cookiejar import Cookie, CookieJar
 from bs4 import BeautifulSoup
 from operator import itemgetter
 from playwright.sync_api import sync_playwright
+from pathlib import Path
 
 
 SITE = "mangasnosekai" #same as url_pattern
 WAIT = 8
 COOKIES = True
 GROUP = "Mangas no Sekai"
+DEBUG = False
+
+agent_file = (Path(__file__).parent.parent.resolve() / 'cookies' / f'{SITE}.txt')
 
 def clean_filename(name: str, replacement: str = "") -> str:
     illegal_chars = r'[<>:"/\\|?*\x00]'
@@ -27,35 +31,51 @@ class Manga:
     URL_PATTERN = r"^https?://(www\.)?mangasnosekai\.com/"
     def __init__(self, url) -> None:
         self.url = url 
+
     
+    def save_agent(self, user_agent):
+        with open(agent_file, "w") as f:
+            f.write(user_agent)
+
+    
+    def read_agent(self):
+        try:
+            with open(agent_file, "r") as f:
+                return f.read()
+        except:
+            return None
+
 
     def test_cookies(self, cookies, user_agent):
-        try:
-            client = httpx.Client( headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com"})
-            client.cookies.jar._cookies.update(cookies)
-        except:
-            client = httpx.Client( headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com"}, cookies=cookies)
+        headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com", "Alt-Used": "mangasnosekai.com"}
+        client = httpx.Client(headers=headers, cookies=cookies)
+        #client.cookies.jar._cookies.update(cookies)
         
         test = client.get(url="https://mangasnosekai.com")
-        if test.status_code == 200: 
-            print("[Valid cookies]")
-            return True, client
-        return False, client
+
+        if DEBUG:
+            print(test.status_code)
+
+        return test.status_code == 200, client
     
 
     def set_client(self, cookies, user_agent):
         # Test existing cookies
-        agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-        valid_cookies, client = self.test_cookies(cookies, agent)
+        agent = self.read_agent()
+        if agent:
+            valid_cookies, client = self.test_cookies(cookies, agent)
+        else:
+            print("[Not agent]")
+            valid_cookies = False
         try:
             while not valid_cookies:
                 cookies, agent = self.get_session_cookies()
+                self.save_agent(agent)
                 valid_cookies, client = self.test_cookies(cookies, agent)   
-                time.sleep(1)
-        except:
-            raise ValueError("Error getting the client")
-        if valid_cookies:
-            self.client = client
+        except Exception as e:
+            raise ValueError(e)
+        
+        self.client = client
         self.user_agent = agent
         #print(f"\nCOokies: {cookies2}")
         #print("")
@@ -64,28 +84,14 @@ class Manga:
         
 
     def get_session_cookies(self):
-        """
-        Opens a URL using Playwright, waits for cookies to be set for the domain,
-        and returns them in 'httpx' format along with the User-Agent string.
-
-        Args:
-            url: The URL to navigate to (e.g., "https://www.example.com").
-
-        Returns:
-            A tuple containing:
-            1. cookies_for_httpx (dict): A dictionary of cookies formatted for httpx
-            (e.g., {'cookie_name': 'cookie_value'}).
-            2. user_agent (str): The User-Agent string used by the browser.
-            Returns (None, None) if no cookies are found.
-        """
-        # Thanks Gemini
-        # 1. Initialize Playwright and Browser
         url = "https://mangasnosekai.com"
         jar = httpx.Cookies()
         with sync_playwright() as p:
             # Use a Chromium browser instance
-            browser = p.chromium.launch(headless=False, args=['--disable-blink-features=AutomationControlled'],
-                                        executable_path="/usr/bin/google-chrome-stable") 
+            browser = p.chromium.launch(headless=False, channel="chromium",
+                                        args=['--disable-blink-features=AutomationControlled'],
+
+            ) 
             
             # Create a new context (like a fresh browser session)
             context = browser.new_context()
@@ -125,6 +131,8 @@ class Manga:
             #print("playwright_cookies: \n")
             #print(playwright_cookies)
             jar = CookieJar()
+
+            playwright_cookies = context.cookies()
         
             for pc in playwright_cookies:
                 # Construct the Cookie object correctly
@@ -188,7 +196,7 @@ class Manga:
     
 
     def get_chapters(self):
-        
+        from rich.progress import Progress
         # Get the series page
         page = self.client.get(url=self.url, follow_redirects=True)
         if page.status_code != 200:
@@ -216,22 +224,25 @@ class Manga:
                     "Connection": "keep-alive", "Referer": "https://mangasnosekai.com/manga/historias/}"}
         
         CHAPTERS = []
-        for i in range(int(last_page)):
-            data_1 = {"action" : "muslitos_anti_hack", "page": str(i+1), "mangaid": str(manga_id), "secret": "mihonsuckmydick"}
-            page_1 = self.client.post(url=url_1, headers=headers_1, data=data_1)
-            
-            response_1 = page_1.json()
-            data = response_1['chapters_to_display']
-            for chapter in data:
-                chapter_number = float(chapter['number'])
-                chapter_url = chapter['link']
-                CHAPTERS.append({
-                    'volume': 0,
-                    'chapter_number': chapter_number,
-                    'chapter_url': chapter_url
-                })
+        with Progress() as progress:
+            task = progress.add_task(f"[Get Chapters] Getting the chapters", total=int(last_page))
+            for i in range(int(last_page)):
+                data_1 = {"action" : "muslitos_anti_hack", "page": str(i+1), "mangaid": str(manga_id), "secret": "mihonsuckmydick"}
+                page_1 = self.client.post(url=url_1, headers=headers_1, data=data_1)
+                
+                response_1 = page_1.json()
+                data = response_1['chapters_to_display']
+                for chapter in data:
+                    chapter_number = float(chapter['number'])
+                    chapter_url = chapter['link']
+                    CHAPTERS.append({
+                        'volume': 0,
+                        'chapter_number': chapter_number,
+                        'chapter_url': chapter_url
+                    })
 
-            time.sleep(2)
+                time.sleep(2)
+                progress.update(task, advance=1)
 
         CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
         return serie_name, CHAPTERS
