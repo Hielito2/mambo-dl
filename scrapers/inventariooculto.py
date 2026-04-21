@@ -23,10 +23,13 @@ class Manga:
         self.user_agent = user_agent.opera
         self.client = httpx.Client(headers={"User-Agent": self.user_agent})
         if not cookies == {}:
-            print(f"[Inventario] using existing cookies")
+            print(f"[{SITE}] using existing cookies")
             self.client.cookies.jar._cookies.update(cookies)
+
     
-    
+    def get_site(self):
+        return SITE
+
     def get_group_name(self):
         return GROUP
 

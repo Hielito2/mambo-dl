@@ -5,3 +5,6 @@
 /__pycache__
 /debug
 /debug
+uv.lock
+debug/test.py
+/debug

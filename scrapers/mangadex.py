@@ -30,6 +30,9 @@ class Manga:
                                             "Referer": "https://mangadex.org/"})
 
 
+    def get_site(self):
+        return SITE
+
     def wait(self):
         return WAIT
 
@@ -85,7 +88,7 @@ class Manga:
         return False
 
     
-    def clean_chapters(self, chapters, limit, start_chapter, end_chapter):
+    def clean_chapters(self, chapters):
         progress = Progress()
         progress.start()
         print("== Cleaning Chapters ==")
@@ -93,9 +96,9 @@ class Manga:
             task1 = progress.add_task("[cyan]Cleaning...", total=len(chapters))
             new_chapters = []
             for chapter in chapters:
-                if limit:
+                """if limit:
                     if int(chapter['chapter_number']) < start_chapter or int(chapter['chapter_number']) > end_chapter:
-                        continue
+                        continue"""
                 #   
                 chapter_group = self.is_the_group(chapter['chapter_url'], self.group_code)
                 if chapter_group:
@@ -113,23 +116,38 @@ class Manga:
     
     def get_chapters(self):
         lang = self.get_group_lang()
+        if DEBUG:
+            print("Lang: ", lang)
         serie_url = f"https://api.mangadex.org/manga/{self.url}/aggregate?translatedLanguage[]={lang}&groups[]={self.group_code}"
+        if DEBUG:
+            print(serie_url)
         # Get the series page
         page = self.client.get(url=serie_url)
         if page.status_code != 200:
-            raise ValueError
-        
+            raise ValueError("[Mangadex] Error get_chapters")
+        if DEBUG:
+            print("[get_chapters] page: ", page.status_code)
         #Get the serie name
         a = self.client.get(f"https://api.mangadex.org/manga/{self.url}")
+        if DEBUG:
+            print("[API]: ", a.status_code)
         a.raise_for_status()
+
+        manga_data = a.json()
         try:
-            serie_name = a.json()['data']['attributes']['title']['en']
+            serie_name = manga_data['data']['attributes']['title']['en']
         except:
-            try: # Should make a function of this
-                serie_name = a.json()['data']['attributes']['altTitles'][0]['en']
-            except:
-                serie_name = a.json()['data']['attributes']['altTitles'][1]['en']
-            
+            for tri in manga_data['data']['attributes']['altTitles']:
+                try: 
+                    serie_name = tri['en']
+                except:
+                    continue
+        
+        if serie_name is None:
+            raise ValueError("[Mangadex] Couldn't get serie name")
+        
+        if DEBUG:
+            print("serie_name: ", serie_name)
         serie_name = str(serie_name).strip().replace(",", "")
         # Get the chapters id
         response = page.json()
@@ -148,7 +166,9 @@ class Manga:
                 })
 
         #print(CHAPTERS)
-        CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))      
+        CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number')) 
+        if DEBUG:
+            print(CHAPTERS)     
         return serie_name, CHAPTERS
 
     

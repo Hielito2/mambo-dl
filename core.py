@@ -1,11 +1,11 @@
 # scraper.py
-import importlib.util
 import re
-import sys
 import json
 import time
 import random
 import subprocess
+import importlib.util
+import sys
 
 from pathlib import Path
 
@@ -22,7 +22,7 @@ DOWNLOAD = Path('/mnt/ssd/Manga-Scrape/')
 
 debug = True
 
-class Manga():
+class Core:
     def __init__(self, **kwargs) -> None:
         self.url = str(kwargs['url'])
         self.limit = kwargs['limit']
@@ -30,71 +30,32 @@ class Manga():
         self.last_chapter = int(kwargs['last_chapter'])
         self.group_code = kwargs['group_code']
         #
-        self.all_source_classes = self._load_source_classes()
-        if not self.all_source_classes:
-            raise ValueError("Error: No valid source classes were loaded from the Sources directory.")
-        self.scraper = self._get_scraper_for_url()
+        self.scraper = self._load_source_classes()
+
         self.site_name = self.url.split("//")[1].split('.')[0]
 
 
-    def _load_source_classes(self) -> list: # READY
-        source_classes = []
-        
-        # Temporarily add the Sources directory to the path for correct relative imports
-        sys.path.insert(0, str(SOURCES_DIR.parent))
-        
+    def _load_source_classes(self) -> list: 
+        # https://pytutorial.com/python-importlibutilspec_from_file_location-guide/
         try:
             for source_file in SOURCES_DIR.glob("*.py"):
-                if source_file.name == "__init__.py":
-                    continue
-
                 module_name = source_file.stem
-                class_name =  "Manga"
                 
-                # --- Dynamic Module Loading ---
-                spec = importlib.util.spec_from_file_location(module_name, source_file)
-                if spec is None:
+                if module_name not in self.url:
                     continue
+                
+                spec = importlib.util.spec_from_file_location(module_name, source_file)
 
                 module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module) # type: ignore
-
-                # --- Class Extraction and Validation ---
-                if hasattr(module, class_name):
-                    scraper_class = getattr(module, class_name)
-                    
-                    # Validation: Check if it has the required URL_PATTERN for matching
-                    if hasattr(scraper_class, 'URL_PATTERN'):
-                        source_classes.append(scraper_class)
-                    else:
-                        print(f"Warning: Class {class_name} in {module_name}.py is missing 'URL_PATTERN' attribute. Skipping.")
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
+                if module.SITE.lower() in ['mangadex','zonatmo']:
+                    scraper = module.Manga(self.url, self.group_code)
                 else:
-                    print(f"Warning: Could not find class '{class_name}' in {module_name}.py. Skipping.")
-
+                    scraper = module.Manga(self.url)
         finally:
-            # Clean up the system path
-            if sys.path[0] == str(SOURCES_DIR.parent):
-                sys.path.pop(0)
+            return scraper
 
-        return source_classes
-
-
-    def _get_scraper_for_url(self): # READY
-        """
-        Finds and instantiates the correct scraper class for the given URL
-        by matching the URL against the class'volumens URL_PATTERN.
-        """
-        for scraper_class in self.all_source_classes:
-            # Use the class's URL_PATTERN (must be a static/class attribute)
-            pattern = getattr(scraper_class, 'URL_PATTERN')
-            if re.match(pattern, self.url):
-                # Instantiate the class with the URL
-                sites_group = ['mangadex','zonatmo']
-                if any(group in self.url for group in sites_group):
-                    return scraper_class(self.url, self.group_code)
-                return scraper_class(self.url)
-                
-        raise ValueError(f"Not found scraper for {self.url}")
 
 
     def check_float(self, number): # READY
@@ -139,14 +100,16 @@ class Manga():
                         chapters_clean.append(chapter_data)
             else:
                 chapters_clean = chapters
-            # 3.5. Clean chapters for mangadex
-            try:
+            # 3.5. Clean chapters for mangadex  | NOT NECCESARY ?
+            """try:
                 if hasattr(self.scraper, 'clean_chapters'):
-                    chapters_clean = self.scraper.clean_chapters(chapters_clean, self.limit, self.first_chapter, self.last_chapter)
+                    chapters_clean = self.scraper.clean_chapters(chapters_clean)
                 return chapters_clean
             except Exception as e:
-                raise ValueError(f"An error occurred during cleaning chapters: {e}")
+                raise ValueError(f"An error occurred during cleaning chapters: {e}")"""
             
+            return chapters_clean
+
         print("\n--- Getting Chapters ---")
         try:
             self.serie_name, chapters = self.scraper.get_chapters()
@@ -161,14 +124,17 @@ class Manga():
             print(f"Additional Info: {info}")
         
         chapters = clean_chapters(chapters)
+
+        print(f'[CORE] ', chapters)
+
         return chapters
     
 
     def get_image_urls(self, chapter_data):
         chapter_images = self.scraper.get_images_url(chapter_data['chapter_url']) # THe urls
 
-        #if len(chapter_images) == 0:
-        #    raise ValueError("[get_image_urls] 0 Images got")
+        if len(chapter_images) == 0:
+            raise ValueError("[get_image_urls] 0 Images got")
 
         return chapter_images
     
@@ -215,7 +181,7 @@ def get_chapter_wait(start_time, site_wait):
 def download_manga(**kwargs):
     #start = time.time()
     # class
-    serie = Manga(**kwargs)
+    serie = Core(**kwargs)
     serie.set_client()
     #
     chapters = serie.get_chapters()
