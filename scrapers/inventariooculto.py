@@ -78,31 +78,51 @@ class Manga:
     def find_chapters(self, content_block: BeautifulSoup):
         # Get the chapters that have a volume
         chapters = []
+        urls = []
 
-        for volume in content_block.find_all('a'):
+        previous_chap_num = None
+        for volume in reversed(content_block.find_all('a')):
+            
             if not "https://inventariooculto.com/manga" in volume.get("href"):
                 continue
             
+            chapter_name = volume.text.lower().strip()
+            if chapter_name == "":
+                continue
+
             chapter_url = volume.get('href').strip()
+            if chapter_url in urls:
+                continue
+            else:
+                urls.append(chapter_url)
+                
             #print(volume.parent.parent.parent.parent.parent.find('a').text)
             try:
                 volume_number = int(volume.find_parent(class_="has-child").find('a').text.split(' ')[1])
             except:
                 volume_number = 0
             
-            try:
-                chapter_number = float(volume.text.split(" ")[1])
-            except:
-                chapter_number = random.randint(300, 999) # Not ideal but don't know what else
+            
+            if "capítulo" in volume.text.lower():
+                try:
+                    chapter_number = float(volume.text.split(" ")[1])
+                except:
+                    chapter_number = float(previous_chap_num + 0.25)
+                previous_chap_num = chapter_number
+            else:   
+                previous_chap_num = round(previous_chap_num + 0.2, 1)
+                chapter_number = previous_chap_num
             
             data = {
                 'volume': volume_number,
                 'chapter_number': chapter_number,
                 'chapter_url': chapter_url
             }
+            
+            if DEBUG:
+                print(data)
             chapters.append(data)
-
-        return chapters
+        return sorted(chapters, key=itemgetter('chapter_number'))
     
      
     def get_all_site_series(self):
@@ -122,6 +142,9 @@ class Manga:
             time.sleep(3)
 
         return series
+    
+
+
 
     def get_chapters(self):
 
@@ -137,10 +160,6 @@ class Manga:
         content_block = soup.find("div", class_="page-content-listing single-page")
         chapters = self.find_chapters(content_block)
         
-        chapters = sorted(chapters, key=itemgetter('chapter_number'))
-        if DEBUG:
-            for a in chapters:
-                print(a)
         return self.serie_name, chapters
     
 

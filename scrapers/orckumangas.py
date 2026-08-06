@@ -10,13 +10,13 @@ from playwright.sync_api import sync_playwright
 from pathlib import Path
 
 
-SITE = "mangasnosekai" #same as url_pattern
+SITE = "orckumangas" #same as url_pattern
 WAIT = 8
 COOKIES = True
-GROUP = "Mangas no Sekai"
-DEBUG = False
+GROUP = "orckumangas"
+DEBUG = True
 
-agent_file = (Path(__file__).parent.parent.resolve() / 'cookies' / f'{SITE}.txt')
+agent_file = Path(__file__).parent.parent.resolve() / 'cookies' / f'AGENT.txt'
 
 def clean_filename(name: str, replacement: str = "") -> str:
     illegal_chars = r'[<>:"/\\|?*\x00]'
@@ -28,7 +28,7 @@ def clean_filename(name: str, replacement: str = "") -> str:
 
 class Manga:
 
-    URL_PATTERN = r"^https?://(www\.)?mangasnosekai\.com/"
+    URL_PATTERN = r"^https?://(www\.)?orckumangas\.com/"
     def __init__(self, url) -> None:
         self.url = url 
 
@@ -47,11 +47,23 @@ class Manga:
 
 
     def test_cookies(self, cookies, user_agent):
-        headers={"User-Agent": user_agent, "Referer": "https://mangasnosekai.com", "Alt-Used": "mangasnosekai.com"}
-        client = httpx.Client(headers=headers, cookies=cookies)
-        #client.cookies.jar._cookies.update(cookies)
+        if cookies:
+            try:
+                # Create a CookieJar from your dict
+                cookie_jar = CookieJar()
+                for domain, paths in cookies.items():
+                    for path, cookies in paths.items():
+                        for cookie_name, cookie_obj in cookies.items():
+                            cookie_jar.set_cookie(cookie_obj)
+            except:
+                cookie_jar = cookies
+
+
+        headers={"User-Agent": user_agent, "Referer": "https://orckumangas.com/index.php", "Alt-Used": "mangasnosekai.com"}
+        client = httpx.Client(headers=headers, cookies=cookie_jar)
+
         
-        test = client.get(url="https://mangasnosekai.com")
+        test = client.get(url="https://orckumangas.com/index.php")
 
         if DEBUG:
             print(test.status_code)
@@ -84,7 +96,7 @@ class Manga:
         
 
     def get_session_cookies(self):
-        url = "https://mangasnosekai.com"
+        url = "https://orckumangas.com/index.php"
         jar = httpx.Cookies()
         with sync_playwright() as p:
             # Use a Chromium browser instance
@@ -191,9 +203,24 @@ class Manga:
     
 
     def get_image_headers(self, **kwargs):
-        headers = headers={"User-Agent": self.user_agent, "Referer": "https://mangasnosekai.com/"}
+        headers = headers={"User-Agent": self.user_agent, "Referer": kwargs['chapter_url']}
         return headers, True
     
+
+    def get_page_chapters(self, page_url):
+        request = self.client.get(url=f"https://orckumangas.com/ficha.php{page_url}")
+        request.raise_for_status()
+
+        soup = BeautifulSoup(request.content, "lxml")
+        chapters = []
+        all_chapters = soup.find('div', class_="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3").find_all('a')
+        for chapter in all_chapters:
+            data = {}
+            data['number'] = chapter.text.split(' ')[1]
+            data['link'] = f"https://orckumangas.com/{chapter.get('href')}"
+            chapters.append(data)
+
+        return chapters
 
     def get_chapters(self):
         from rich.progress import Progress
@@ -205,33 +232,34 @@ class Manga:
         
         #self.debug(page.text)
         
-        serie_name = clean_filename(soup.find_all('p', class_="font-light text-white")[2].text.split("~")[0])
+        serie_name = clean_filename(soup.find('div', class_="flex-1").find('h1').text)
+
+        if DEBUG:
+            print('Serie Name: ', serie_name)
         
         if not serie_name:
-            print('[mangasnosekai] No serie name ??[!]?')
+            print(f'[{GROUP}] No serie name ??[!]?')
             return None
         
-        # Get the manga ID
-        manga_id = soup.find('div', class_="site-content").find_next('div').get('class')[0].split("-")[1]
+        # Get many pages the series has
+        serie_pages = soup.find('div', class_="flex flex-wrap justify-center gap-2 mt-6").find_all('a')
 
-        # Get last page number 
-        pages_block = soup.find('div', class_="row justify-content-center")
-        last_page = pages_block.find_all('a', class_="pagination-item")[-1].text
         
-        # Get Chapters'
-        url_1 = "https://mangasnosekai.com/wp-json/muslitos/v1/getcaps7"
-        headers_1 = {"Origin": "https://mangasnosekai.com", "Alt-Used": "mangasnosekai.com",
-                    "Connection": "keep-alive", "Referer": "https://mangasnosekai.com/manga/historias/}"}
+        # Get the links of the pages
+        serie_pages_urls = [url.get('href') for url in serie_pages]
+
+        if DEBUG:
+            print("Pages: ", len(serie_pages))
+            print('Series urls: ', serie_pages_urls)
+
+        
+
         
         CHAPTERS = []
         with Progress() as progress:
-            task = progress.add_task(f"[Get Chapters] Getting the chapters", total=int(last_page))
-            for i in range(int(last_page)):
-                data_1 = {"action" : "muslitos_anti_hack", "page": str(i+1), "mangaid": str(manga_id), "secret": "mihonsuckmydick"}
-                page_1 = self.client.post(url=url_1, headers=headers_1, data=data_1)
-                
-                response_1 = page_1.json()
-                data = response_1['chapters_to_display']
+            task = progress.add_task(f"[Get Chapters] Getting the chapters", total=len(serie_pages_urls))
+            for page_url in serie_pages_urls:
+                data = self.get_page_chapters(page_url)
                 for chapter in data:
                     chapter_number = float(chapter['number'])
                     chapter_url = chapter['link']
@@ -245,6 +273,7 @@ class Manga:
                 progress.update(task, advance=1)
 
         CHAPTERS = sorted(CHAPTERS, key=itemgetter('chapter_number'))
+
         return serie_name, CHAPTERS
     
 
@@ -256,8 +285,8 @@ class Manga:
             self.debug(r.text)
 
         soup = BeautifulSoup(r.content, "lxml")
-        images_block = soup.find("div", class_="reading-content").find_all("img")
-        images = [image.get("data-src").strip() for image in images_block] 
+        images_block = soup.find("div", class_="chapter-images").find_all("img")
+        images = [f"https://orckumangas.com/{image.get("src").strip()}" for image in images_block] 
 
         return images
         

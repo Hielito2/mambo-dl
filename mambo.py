@@ -1,5 +1,5 @@
 import click
-import re
+import os
 from core import download_manga, create_cbz
 
 @click.group()
@@ -11,59 +11,59 @@ def cli():
 @click.argument('url')
 @click.option(
     '-w', 
-    '--chapters',  # Change the internal name for clarity
-    type=str,           # Accept a string input (e.g., "1-10")
-    default="0000",       # Set a default value when the option is not provided
+    '--chapters',
+    type=str,
+    default=None,
     help='Specify a chapter range to download (e.g., 1-10, 5, or 10-)'
 )
 @click.option(
     '-gc', 
-    '--group-code',     # The new, site-specific option Mangadex
-    type=str,           
-    default=None,       
+    '--group-code',
+    type=str,
+    default=None,
     help='[Mangadex] The specific group link or code.'
 )
 @click.option(
-    '-all', 
-    is_flag=True,       
-    help='Download all series from a website, go brrr.' # Don't know how to efficient do it
+    '-all',
+    is_flag=True,
+    help='Download all series from a website, go brrr.' # No implemented yet
 )
-def dl(url, chapters, group_code, all):
-    """Download manga from URL"""
-
-    if chapters == '0000':
+@click.option(
+    '-o',
+    '--output',
+    default=None,
+    help='Download all series from a website, go brrr.'
+)
+def dl(url, chapters, group_code, all, output):
+    if not chapters:
         limit = False
         start_chapter, end_chapter = 0, 9999
     else:
         limit = True
-        # Regex to parse formats like "1-10", "5", "10-"
-        match = re.match(r'^(\d+)(?:-(\d+)?)?$', chapters.strip())
-
-        if match:
-            start_str, end_str = match.groups()
-            start_chapter = int(start_str)
-            end_chapter = int(end_str)
+        try:
+            start_chapter = int(chapters.split('-')[0])
+            end_chapter = int(chapters.split('-')[1])
             print(f"Downloading range: from {start_chapter} to {end_chapter}")
-        else:
-            return "No match mambo.py"
+        except:
+            raise ValueError(f"Not valid {chapters}")
  
     download_manga(url=url, limit=limit, first_chapter=start_chapter, 
-                   last_chapter=end_chapter, group_code=group_code, all=all)
+                   last_chapter=end_chapter, group_code=group_code, all=all, output=output)
 
 @cli.command()
 @click.argument('path')
 @click.option(
-    '-l', 
-    '--language',  
-    type=str,          
-    default="en",       #
+    '-l',
+    '--language',
+    type=str,
+    default="en",
     help='Specify Language iso (en, es, pt)'
 )
 @click.option(
-    '-s', 
-    '--serie-name',  
-    type=str,          
-    prompt="Series name: ",       #
+    '-s',
+    '--serie-name',
+    type=str,
+    prompt="Series name: ",
     help='Series name'
 )
 def cbz(path, language, serie_name):

@@ -9,7 +9,7 @@ from rich.progress import Progress
 
 SITE = "mangadex" #same as url_pattern
 WAIT = 10
-DEBUG = False #later...
+DEBUG = True #later...
 COOKIES = False
 
 class Manga:
@@ -24,10 +24,19 @@ class Manga:
     
 
     def set_client(self, cookies, user_agent):
-        self.user_agent = user_agent.opera
+        self.user_agent = user_agent.chrome
         self.client = httpx.Client(headers={"User-Agent": self.user_agent, 
                                             "Origin": "https://mangadex.org", 
-                                            "Referer": "https://mangadex.org/"})
+                                            "Referer": "https://mangadex.org/",
+                                            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=",
+                                            "Sec-GPC": "1",
+                                            "Connection": "keep-alive",
+                                            "Upgrade-Insecure-Requests": "1",
+                                            "Sec-Fetch-Dest": "document",
+                                            "Sec-Fetch-Mode": "navigate",
+                                            "Sec-Fetch-Site": "none",
+                                            "Sec-Fetch-User": "?1",
+                                            "Priority": "u=0, i"})
 
 
     def get_site(self):
@@ -118,12 +127,17 @@ class Manga:
         lang = self.get_group_lang()
         if DEBUG:
             print("Lang: ", lang)
-        serie_url = f"https://api.mangadex.org/manga/{self.url}/aggregate?translatedLanguage[]={lang}&groups[]={self.group_code}"
+        serie_url = f"https://api.mangadex.org/manga/{self.url}/aggregate?translatedLanguage[]={lang}&groups[]={self.group_code}".strip()
         if DEBUG:
             print(serie_url)
-        # Get the series page
+            # Get the series page
+            test = self.client.get(url="https://mangadex.org/")
+            print(test.status_code, "https://mangadex.org/")
+            
         page = self.client.get(url=serie_url)
+        print(page)
         if page.status_code != 200:
+            print(f"status: {page.status_code}")
             raise ValueError("[Mangadex] Error get_chapters")
         if DEBUG:
             print("[get_chapters] page: ", page.status_code)
@@ -140,6 +154,7 @@ class Manga:
             for tri in manga_data['data']['attributes']['altTitles']:
                 try: 
                     serie_name = tri['en']
+                    break
                 except:
                     continue
         
@@ -151,6 +166,8 @@ class Manga:
         serie_name = str(serie_name).strip().replace(",", "")
         # Get the chapters id
         response = page.json()
+        if DEBUG:
+            print("response: \n", response)
         CHAPTERS = []
         for volume_number, value in response['volumes'].items():
             for chapter_number, chapter_info in value.get("chapters").items():

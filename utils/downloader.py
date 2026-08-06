@@ -4,10 +4,13 @@ import asyncio
 
 from pathlib import Path
 from rich.progress import Progress
-from utils.create_dirs import create_directory
+from utils.create_dirs import create_directory, extension_mapping
 
 
-def chapter_volumen_number(number):
+
+
+
+def chapter_volumen_number(number, vol=False):
     # Split the number into integer and decimal parts
     if isinstance(number, str):
         integer_part, *decimal_part = number.split('.')
@@ -25,81 +28,83 @@ def chapter_volumen_number(number):
     # Add the decimal part back if it exists
     if decimal_part:
         new_number += '.' + decimal_part[0]
-    
+
+    if not vol:
+        if "." in new_number:
+            dot_split = new_number.split('.')
+            if len(dot_split[1]) < 2:
+                new_number = new_number + "0"
+        else:
+            new_number += ".00"
+        
     return new_number
 
 
-def download_image(serie_name, volumen, chapter_number, chapter_images, series_path, headers, cookies, group_name):
+def get_image_ext(headears, image):
+    content_type = headears.get('Content-Type', 'bin')
+    if content_type not in extension_mapping.keys():
+        url_extension = str(image).split('.')[-1]
+        if url_extension in extension_mapping.values():
+            extension = url_extension
+        else:
+            extension = "bin"
+    else:
+        extension = extension_mapping[content_type]
+    
+    return extension
+    
 
-    group_name = group_name.replace(' ', '-')
-    extension_mapping = {
-                'image/jpg': 'jpg',
-                'image/jpeg': 'jpg',
-                'image/png': 'png',
-                'image/webp': 'webp',
-                'image/avif': 'avif'
-    }
-    """Download a single image with error handling"""
+
+def download_image(serie_name, volumen, chapter_number, chapter_images, series_path, headers, cookies, group_name):
     chapter_number = chapter_volumen_number(chapter_number)
-    #chapter_number = "{:.2f}".format(int(chapter_number))
-    volumen = chapter_volumen_number(volumen)
+    
+    volumen = chapter_volumen_number(volumen, vol=True)
     if volumen == "000":
         download_path = create_directory(Path(series_path, f"{serie_name} {chapter_number} ({group_name})"))
     else:
         download_path = create_directory(Path(series_path, f"{serie_name} v{volumen} ({group_name})"))
     
-    # Download pretty
-   
+    MISSING = {}
     with Progress() as progress:
-        try:
-            task = progress.add_task(f"[cyan]Downloading Chapter {chapter_number} :: {len(chapter_images)} images...", total=len(chapter_images))
-            with httpx.Client(headers=headers,timeout=httpx.Timeout(30.0, read=60.0)) as client:
-                if cookies != {}:
-                    client.cookies.jar._cookies.update(cookies)
+        task = progress.add_task(f"[cyan]Downloading Chapter {chapter_number} :: {len(chapter_images)} images...", total=len(chapter_images))
 
-                async def download(i, image):
-                    async with asyncio.Semaphore(5):
-                        for _ in range(5):
-                            try:
-                                response = client.get(image, follow_redirects=True)
-                                
-                                
-                                response.raise_for_status()
-                                content_type = response.headers.get('Content-Type', 'bin')
-                                try:
-                                    if content_type not in extension_mapping.keys():
-                                        url_extension = str(image).split('.')[-1]
-                                        if url_extension in extension_mapping.values():
-                                            extension = url_extension
-                                    else:
-                                        extension = extension_mapping.get(content_type)                            
-                                except:
-                                    extension = "bin"
-                                    
-                                    
-                                image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{chapter_volumen_number(i)}].{extension}")
-                                
-                                if (not image_path.exists() 
-                                    or image_path.stat().st_size != int(response.headers.get('content-length', 0))):  
-                                    with open(image_path, 'wb') as file:
-                                        file.write(response.content)
-                                
-                                progress.update(task, advance=1)
-                                break  
-                            except Exception as e:
-                                print(f"Failed to download image: {str(e)}")
-                                #print(f"Headers: {headers}")
-                                time.sleep(6)
-                                continue    
+        client = httpx.Client(headers=headers)
+        if cookies != {}:
+            client.cookies.jar._cookies.update(cookies)
 
-                async def asyy():
-                    tasks = [download(i, image) for i, image in enumerate(chapter_images)]
-                    await asyncio.gather(*tasks)
-                            
-                asyncio.run(asyy())                
-        except Exception as e:
-            print(f"Not sure wat to do when get here {e}")
-            return None
-        finally:
-            progress.update(task, visible=True) # Didn't work as I expected
+        for i, image in enumerate(chapter_images):
+            tries = 0
+        
+            while tries < 3:
+                try:
+                    response = client.get(image, follow_redirects=True)                                
+                    if response.status_code == 200:
+                        tries += 4
+                except:
+                    tries =+ 1
+                    time.sleep(4)
+            
+            if response.status_code == 404:
+                temp = chapter_number.split('.')[0]
+                if not temp in MISSING:
+                    MISSING[temp] = [i]
+                else:
+                    MISSING[temp].append(i)
+                continue
+
+
+            extension = get_image_ext(response.headers, image)
+                    
+            image_path = Path(download_path, f"{serie_name} - Chapter {chapter_number}[{f"{i:03d}"}].{extension}")
+            
+            if (not image_path.exists() 
+                or image_path.stat().st_size != int(response.headers.get('content-length', 0))):  
+                with open(image_path, 'wb') as file:
+                    file.write(response.content)
+            
+            progress.update(task, advance=1)
+    
+    if len(MISSING) >= 1:
+            print(MISSING)
+
 

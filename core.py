@@ -1,16 +1,12 @@
-# scraper.py
-import re
-import json
 import time
 import random
-import subprocess
 import importlib.util
 import sys
 
 from pathlib import Path
 
 from utils.downloader import download_image
-from utils.create_dirs import create_directory
+from utils.create_dirs import create_directory, check_valid_output
 from utils.user_agent import agent 
 from utils.cookies import save_cookies, load_cookies
 from utils.cbz import cbz_wu
@@ -18,9 +14,9 @@ from utils.cbz import cbz_wu
 # --- Configuration --- should be a .yaml but I'dont wanna do that yet, no yet
 SOURCES_DIR = (Path(__file__).parent / "scrapers")
 
-DOWNLOAD = Path('/mnt/ssd/Manga-Scrape/')
 
-DEBUG = True
+DEBUG = False
+
 
 class Core:
     def __init__(self, **kwargs) -> None:
@@ -32,8 +28,8 @@ class Core:
         #
         self.scraper = self._load_source_classes()
 
-        self.site_name = self.url.split("//")[1].split('.')[0]
-
+        self.site_name = " ".join(self.url.split("//")[1].split('.')[0:-1])
+        self.output = check_valid_output(kwargs['output'])
 
     def _load_source_classes(self) -> list: 
         # https://pytutorial.com/python-importlibutilspec_from_file_location-guide/
@@ -136,10 +132,6 @@ class Core:
 
     def get_image_urls(self, chapter_data):
         chapter_images = self.scraper.get_images_url(chapter_data['chapter_url']) # THe urls
-
-        if len(chapter_images) == 0:
-            raise ValueError("[get_image_urls] 0 Images got")
-
         return chapter_images
     
     def chapters_iter(self, chapters):
@@ -149,10 +141,11 @@ class Core:
 
     def get_download(self, chapter_data, chapter_images):
         headers, use_cookies = self.scraper.get_image_headers(chapter_url=chapter_data['chapter_url'])
-        
         cookies = {}
         if use_cookies:
             cookies = self.scraper.get_cookies()
+        if DEBUG:
+            print(headers, '\n', cookies)
         self.series_paths()
         download_image(serie_name=self.serie_name, volumen=chapter_data['volume'], 
                        chapter_number=self.check_float(chapter_data['chapter_number']), 
@@ -164,7 +157,7 @@ class Core:
 
     def series_paths(self):
         self.group_name = self.scraper.get_group_name()
-        self.series_path = Path(DOWNLOAD / self.site_name / f"{self.serie_name} ({self.group_name})")
+        self.series_path = Path(self.output / self.site_name / f"{self.serie_name} ({self.group_name})")
         create_directory(self.series_path)
 
 
@@ -183,17 +176,17 @@ def get_chapter_wait(start_time, site_wait):
 
 
 def download_manga(**kwargs):
-    #start = time.time()
-    # class
     serie = Core(**kwargs)
     serie.set_client()
     #
     chapters = serie.get_chapters()
+    serie.update_cookies()
     site_wait = serie.get_wait()
     for chapter_data in serie.chapters_iter(chapters):
         start_time = time.time()
         chapter_images = serie.get_image_urls(chapter_data)
         if len(chapter_images) < 1:
+            print(f"Chapter {chapter_data['chapter_number']} got 0 Images..")
             continue
         serie.get_download(chapter_data, chapter_images)
         serie.update_cookies()
@@ -218,7 +211,12 @@ def create_cbz(path: str, language: str, series:str):
             continue
         # 2.5 Get volume or chapter
         # 2.6 Chapter
-        blok = chapter.name.split(series)[1].strip().split(" ")[0]
+        blok = []
+        for ch in chapter.name:
+            if ch.isdigit():
+                blok.append(str(ch))
+        
+        blok = "".join(blok)
         if "v" in blok:
             # Assume is volume
             volume = True

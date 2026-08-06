@@ -20,7 +20,7 @@ def cbz_wu(**kwargs):
     pages = [
         PageInfo.load(
             path=path,
-            type=PageType.FRONT_COVER if i == 0 else PageType.BACK_COVER if i == len(paths) - 1 else PageType.STORY
+            type=PageType.FRONT_COVER if i == 0 else PageType.STORY
         )
         for i, path in enumerate(sorted(paths))
     ]
