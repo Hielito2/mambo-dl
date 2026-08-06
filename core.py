@@ -15,7 +15,7 @@ from utils.cbz import cbz_wu
 SOURCES_DIR = (Path(__file__).parent / "scrapers")
 
 
-DEBUG = False
+DEBUG = True
 
 
 class Core:
@@ -42,9 +42,9 @@ class Core:
                 
                 spec = importlib.util.spec_from_file_location(module_name, source_file)
 
-                module = importlib.util.module_from_spec(spec)
+                module = importlib.util.module_from_spec(spec) # type: ignore
                 sys.modules[module_name] = module
-                spec.loader.exec_module(module)
+                spec.loader.exec_module(module) # type: ignore
                 if module.SITE.lower() in ['mangadex','zonatmo']:
                     scraper = module.Manga(self.url, self.group_code)
                 else:
@@ -57,38 +57,38 @@ class Core:
 
 
 
-    def check_float(self, number): # READY
+    def check_float(self, number):
         if "." in str(number) and int(str(number).split('.')[1]) == 0:
             number =  int(number)
         return number
     
 
     def set_client(self):        
-        use_cookies = self.scraper.use_cookies()
+        use_cookies = self.scraper.use_cookies() # type: ignore
         if use_cookies:        
             cookies = load_cookies(self.site_name)
         else:
             cookies = {}
-        self.scraper.set_client(cookies=cookies, user_agent=agent())
+        self.scraper.set_client(cookies=cookies, user_agent=agent()) # type: ignore
 
     
     def get_wait(self):
-        return self.scraper.wait()
+        return self.scraper.wait() # type: ignore
         
 
     def update_cookies(self):
-        site_cookies = self.scraper.use_cookies()
+        site_cookies = self.scraper.use_cookies() # type: ignore
         if site_cookies:
-            new_cookies = self.scraper.get_cookies()
+            new_cookies = self.scraper.get_cookies() # type: ignore
             if new_cookies != {}:
                 save_cookies(new_cookies, self.site_name)
 
 
     def get_chapters(self):
 
-        def clean_chapters(chapters):
+        def get_chapters_clean(chapters):
             chapters_clean = []
-            # CLean -  remove chapters not in first and last chapters
+            # CLean -  remove chapters not in range
             if self.limit:
                 for chapter_data in chapters:
                     if int(chapter_data['chapter_number']) < self.first_chapter:
@@ -110,28 +110,25 @@ class Core:
             return chapters_clean
 
         print("\n--- Getting Chapters ---")
-        try:
-            self.serie_name, chapters = self.scraper.get_chapters()
-            # Should find a better way of doing this 
-            print(f"\nSerie: {self.serie_name}\nChapters: {len(chapters)}")
-        except Exception as e:
-            print(f"An error occurred during getting chapters: {e}")
-            return None
-        # You can call other common methods as well (EXAMPLE)
-        if hasattr(self.scraper, 'get_info'):
-            info = self.scraper.get_info()
-            print(f"Additional Info: {info}")
         
-        chapters = clean_chapters(chapters)
+        self.serie_name, chapters = self.scraper.get_chapters() # type: ignore
+        print(f"\nSerie: {self.serie_name}\nChapters: {len(chapters)}")
+
+        # EXAMPLE: You can call other common methods as well (EXAMPLE)
+        #if hasattr(self.scraper, 'get_info'):
+        #    info = self.scraper.get_info()
+        #    print(f"Additional Info: {info}")
+        
+        clean_chapters = get_chapters_clean(chapters)
 
         if DEBUG:
-            print(f'[CORE] ', chapters)
+            print(f'[CORE] ', clean_chapters)
 
-        return chapters
+        return clean_chapters
     
 
     def get_image_urls(self, chapter_data):
-        chapter_images = self.scraper.get_images_url(chapter_data['chapter_url']) # THe urls
+        chapter_images = self.scraper.get_images_url(chapter_data['chapter_url']) # type: ignore # THe urls
         return chapter_images
     
     def chapters_iter(self, chapters):
@@ -140,10 +137,10 @@ class Core:
 
 
     def get_download(self, chapter_data, chapter_images):
-        headers, use_cookies = self.scraper.get_image_headers(chapter_url=chapter_data['chapter_url'])
+        headers, use_cookies = self.scraper.get_image_headers(chapter_url=chapter_data['chapter_url']) # type: ignore
         cookies = {}
         if use_cookies:
-            cookies = self.scraper.get_cookies()
+            cookies = self.scraper.get_cookies() # type: ignore
         if DEBUG:
             print(headers, '\n', cookies)
         self.series_paths()
@@ -156,8 +153,10 @@ class Core:
         
 
     def series_paths(self):
-        self.group_name = self.scraper.get_group_name()
+        self.group_name = self.scraper.get_group_name() # type: ignore
         self.series_path = Path(self.output / self.site_name / f"{self.serie_name} ({self.group_name})")
+        if DEBUG:
+            print(self.series_path)
         create_directory(self.series_path)
 
 
@@ -171,15 +170,23 @@ def get_chapter_wait(start_time, site_wait):
     tooked_time = round(float(end_time - start_time), 2)
     if tooked_time < site_wait and tooked_time > 0:
         time_to_wait = round((site_wait - tooked_time), 2)
-        return random.uniform(time_to_wait, time_to_wait+1)
-    return random.randint(0,1)
+        time_to_wait2 = random.uniform(time_to_wait, time_to_wait+1)
+    else:
+        time_to_wait2 = random.randint(0,1)
+
+    if DEBUG:
+        print(f"Taked time: {tooked_time}\n Time to wait {time_to_wait2}")
+        
+    return time_to_wait2
 
 
 def download_manga(**kwargs):
+    
     serie = Core(**kwargs)
     serie.set_client()
     #
     chapters = serie.get_chapters()
+    
     serie.update_cookies()
     site_wait = serie.get_wait()
     for chapter_data in serie.chapters_iter(chapters):
@@ -191,6 +198,7 @@ def download_manga(**kwargs):
         serie.get_download(chapter_data, chapter_images)
         serie.update_cookies()
         wait_time = get_chapter_wait(start_time, site_wait)
+
         time.sleep(wait_time)
 
 
@@ -237,4 +245,5 @@ def create_cbz(path: str, language: str, series:str):
 
 if __name__ == "__main__":
     print('AH')
+
 

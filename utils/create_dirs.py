@@ -18,7 +18,7 @@ def create_directory(path: Path) -> Path:
 
 def check_valid_output(path):
     if path == None:
-        path = Path(__file__).parent / "download"
+        path = Path(__file__).parent.parent / "download"
     else:
         path = Path(path)
 
