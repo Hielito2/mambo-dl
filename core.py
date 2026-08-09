@@ -15,7 +15,7 @@ from utils.cbz import cbz_wu
 SOURCES_DIR = (Path(__file__).parent / "scrapers")
 
 
-DEBUG = True
+DEBUG = False
 
 
 class Core:

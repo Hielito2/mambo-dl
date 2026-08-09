@@ -109,6 +109,9 @@ class Manga:
                 except:
                     chapter_number = float(previous_chap_num + 0.25)
                 previous_chap_num = chapter_number
+            elif previous_chap_num == None:
+                chapter_number = 0
+                previous_chap_num = round(chapter_number + 0.2, 1)
             else:   
                 previous_chap_num = round(previous_chap_num + 0.2, 1)
                 chapter_number = previous_chap_num

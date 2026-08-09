@@ -119,9 +119,7 @@ class Manga:
 
  
         soup = BeautifulSoup(r.content, "lxml")
-        '''with open("/mnt/ssd/Manga-Scrape/debug.txt", 'w') as f:
-            f.write(str(soup))
-        '''
+
         images = []
         for image_block in soup.find("div", class_="flex flex-col w-full").find_all("div", class_="w-full"):
             image_pre_url = str(image_block.get('q:key'))

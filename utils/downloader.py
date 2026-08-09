@@ -105,6 +105,6 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
             progress.update(task, advance=1)
     
     if len(MISSING) >= 1:
-            print(MISSING)
+        print(MISSING)
 
 
