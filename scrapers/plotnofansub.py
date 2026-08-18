@@ -6,7 +6,7 @@ import time
 SITE = "plotnofansub" #same as url_pattern
 WAIT = 4
 COOKIES = False
-GROUP = "PLOT-TWISTNF-SCANS"
+GROUP = "Plot Twist No Fansub"
 DEBUG = False
 
 class Manga:

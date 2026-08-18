@@ -77,12 +77,16 @@ def download_image(serie_name, volumen, chapter_number, chapter_images, series_p
         
             while tries < 3:
                 try:
-                    response = client.get(image, follow_redirects=True)                                
+                    response = client.get(image, follow_redirects=True)
                     if response.status_code == 200:
-                        tries += 4
+                        tries = 4
+                    elif response.status_code == 404:
+                        tries += 1
+                        time.sleep(2)
                 except:
-                    tries =+ 1
-                    time.sleep(4)
+                    tries += 1
+                    time.sleep(2)
+            
             
             if response.status_code == 404:
                 temp = chapter_number.split('.')[0]
